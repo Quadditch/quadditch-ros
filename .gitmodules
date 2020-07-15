@@ -1,0 +1,3 @@
+[submodule "quadditch/scripts/ardupilot"]
+	path = quadditch/scripts/ardupilot
+	url = https://github.com/ArduPilot/ardupilot.git
