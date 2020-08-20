@@ -4,6 +4,12 @@
 <arg name="fencePath" default = "$(find quadditch)/config/cage_5m_buffer_geofence.fen" />
 
 <group ns="$(arg uavID)">
+
+	<include file="$(find rosbridge_server)/launch/rosbridge_tcp.launch">
+		<arg name = "bson_only_mode" value="True" />
+	</include>
+
+
 	<arg name="fcu_url" default="udp://:14551@" />
 	<arg name="gcs_url" default="" />
 	<arg name="tgt_system" default="1" />
@@ -28,8 +34,8 @@
 	<rosparam param="fencePath" subst_value="True">$(arg fencePath)</rosparam>
 	
 	<node name="sitl" pkg = "quadditch" type="sim.sh" output="log"/>
-
-
+	<node name="translator" pkg="quadditch" type="translator.py" output="screen"/>	
+	<node name="uav_control" pkg="quadditch" type="uav_control.py" output="screen"/>
 </group>
 
 </launch>
