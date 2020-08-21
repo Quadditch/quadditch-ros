@@ -1,6 +1,6 @@
 <launch>
 
-<arg name="uavID" default="uav1" />
+<arg name="uavID" default="uav0" />
 <arg name="fencePath" default = "$(find quadditch)/config/cage_5m_buffer_geofence.fen" />
 
 <group ns="$(arg uavID)">
