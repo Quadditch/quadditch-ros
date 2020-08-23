@@ -22,10 +22,12 @@ class UAV:
 		rospy.wait_for_service(path_base + "cmd/takeoff")
 		rospy.wait_for_service(path_base + "cmd/arming")
 		rospy.wait_for_service(path_base + "set_mode")
+		rospy.wait_for_service(path_base + "set_stream_rate")
 		self.landService	   = rospy.ServiceProxy(path_base + "cmd/land",	mavros_msgs.srv.CommandTOL)
-		self.takeoffService	= rospy.ServiceProxy(path_base + "cmd/takeoff", mavros_msgs.srv.CommandTOL)
-		self.armService		= rospy.ServiceProxy(path_base + "cmd/arming",  mavros_msgs.srv.CommandBool)
+		self.takeoffService    = rospy.ServiceProxy(path_base + "cmd/takeoff", mavros_msgs.srv.CommandTOL)
+		self.armService		   = rospy.ServiceProxy(path_base + "cmd/arming",  mavros_msgs.srv.CommandBool)
 		self.flightModeService = rospy.ServiceProxy(path_base + "set_mode",	mavros_msgs.srv.SetMode)
+		self.streamService     = rospy.ServiceProxy(path_base + "set_stream_rate", mavros_msgs.srv.StreamRate)
 
 		self.pub_local = rospy.Publisher(path_base + "setpoint_position/local", geometry_msgs.msg.PoseStamped, queue_size=10)
 		self.seqId = 0
@@ -47,6 +49,14 @@ class UAV:
 
 	def locPosCb(self, poseMsg):
 		self.estimate = True
+
+	def setStreamRate(self, stream_id = 6, rate = 100, on_off = True):
+		# STREAM_ALL=0 STREAM_RAW_SENSORS STREAM_EXTENDED_STATUS STREAM_RC_CHANNELS STREAM_RAW_CONTROLLER STREAM_POSITION 
+		# STREAM_EXTRA1 STREAM_EXTRA2 STREAM_EXTRA3
+		try:
+			self.streamService(stream_id = stream_id, message_rate = rate)
+		except rospy.ServiceException as e:
+			print("service set_stream_rate call failed: %s"%e)
 
 	def setMode(self, mode = 'GUIDED'):
 		try:
@@ -109,3 +119,6 @@ if __name__ == '__main__':
   		uav.setTakeoffMode()
 		rospy.sleep(1)
 	rospy.loginfo("Takeoff complete")
+
+	while True:
+		uav.setStreamRate()
