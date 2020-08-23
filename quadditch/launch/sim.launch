@@ -10,7 +10,7 @@
 	</include>
 
 
-	<arg name="fcu_url" default="udp://:14551@" />
+	<arg name="fcu_url" default="udp://:14540@127.0.0.1:14557" />
 	<arg name="gcs_url" default="" />
 	<arg name="tgt_system" default="1" />
 	<arg name="tgt_component" default="1" />
@@ -32,8 +32,8 @@
 	</include>
 		
 	<rosparam param="fencePath" subst_value="True">$(arg fencePath)</rosparam>
-	
-	<node name="sitl" pkg = "quadditch" type="sim.sh" output="log"/>
+	<node name="QGroundControl" pkg="quadditch" type="QGroundControl.AppImage" output="screen"/>
+	<!--  Replace with Gazebo!  <node name="sitl" pkg = "quadditch" type="sim.sh" output="log"/> -->
 	<node name="translator" pkg="quadditch" type="translator.py" output="screen"/>	
 	<node name="uav_control" pkg="quadditch" type="uav_control.py" output="screen"/>
 </group>

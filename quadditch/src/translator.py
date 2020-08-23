@@ -1,11 +1,12 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
+import sys
 import rospy
 from std_msgs.msg import Float32
 from geometry_msgs.msg import PoseStamped, TwistStamped
 
 class Translator:
-    
+
     def __init__(self):
         rospy.init_node('translator', anonymous=True)
         ns = rospy.get_namespace()
@@ -36,7 +37,7 @@ class Translator:
         self.qxPub.publish(poseMsg.pose.orientation.x)
         self.qyPub.publish(poseMsg.pose.orientation.y)
         self.qzPub.publish(poseMsg.pose.orientation.z)
-        self.qwPub.publish(poseMsg.pose.orientation.w)  
+        self.qwPub.publish(poseMsg.pose.orientation.w)
 
     def twistCallback(self, twistMsg):
         self.vxPub.publish(twistMsg.twist.linear.x)
@@ -47,11 +48,10 @@ class Translator:
         self.wzPub.publish(twistMsg.twist.angular.z)
 
 
-        
 
 
 if __name__ == '__main__':
     try:
         t = Translator()
-    except rospy.ROSInterruptException:
-        pass
+    except:
+        sys.exit(0)

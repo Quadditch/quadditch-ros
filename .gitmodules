@@ -1,3 +1,4 @@
-[submodule "quadditch/scripts/ardupilot"]
-	path = quadditch/scripts/ardupilot
-	url = https://github.com/ArduPilot/ardupilot.git
+
+[submodule "quadditch/modules/Firmware"]
+	path = quadditch/modules/Firmware
+	url = https://github.com/PX4/Firmware.git
