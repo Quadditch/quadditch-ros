@@ -33,7 +33,7 @@
 		
 	<rosparam param="fencePath" subst_value="True">$(arg fencePath)</rosparam>
 	<node name="QGroundControl" pkg="quadditch" type="QGroundControl.AppImage" output="screen"/>
-	<!--  Replace with Gazebo!  <node name="sitl" pkg = "quadditch" type="sim.sh" output="log"/> -->
+	<node name="sitl" pkg = "quadditch" type="sim.sh" output="log"/>
 	<node name="translator" pkg="quadditch" type="translator.py" output="screen"/>	
 	<node name="uav_control" pkg="quadditch" type="uav_control.py" output="screen"/>
 </group>
