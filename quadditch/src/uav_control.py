@@ -1,41 +1,43 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 
 import rospy
 import mavros_msgs.msg
 import mavros_msgs.srv
 import geometry_msgs.msg
+import sys
 
 class UAV:
 	def __init__(self, uav_id):
 		self.ready = False
 		self.uav_id = uav_id
 
+		self.desiredVel = geometry_msgs.msg.Twist
+
 		path_base = "/uav"+str(uav_id)+"/mavros/"
 
 		self.state = mavros_msgs.msg.State()
 		rospy.Subscriber(path_base + "state", mavros_msgs.msg.State, self.stateCb)
 
-		self.estimate = False
-		rospy.Subscriber(path_base + "local_position/pose", geometry_msgs.msg.PoseStamped, self.locPosCb)
+		self.home = False
+		rospy.Subscriber(path_base + "home_position/home", mavros_msgs.msg.HomePosition, self.homeCb)
 
 		rospy.wait_for_service(path_base + "cmd/land")
 		rospy.wait_for_service(path_base + "cmd/takeoff")
 		rospy.wait_for_service(path_base + "cmd/arming")
 		rospy.wait_for_service(path_base + "set_mode")
-		rospy.wait_for_service(path_base + "set_stream_rate")
 		self.landService	   = rospy.ServiceProxy(path_base + "cmd/land",	mavros_msgs.srv.CommandTOL)
 		self.takeoffService    = rospy.ServiceProxy(path_base + "cmd/takeoff", mavros_msgs.srv.CommandTOL)
 		self.armService		   = rospy.ServiceProxy(path_base + "cmd/arming",  mavros_msgs.srv.CommandBool)
 		self.flightModeService = rospy.ServiceProxy(path_base + "set_mode",	mavros_msgs.srv.SetMode)
-		self.streamService     = rospy.ServiceProxy(path_base + "set_stream_rate", mavros_msgs.srv.StreamRate)
 
-		self.pub_local = rospy.Publisher(path_base + "setpoint_position/local", geometry_msgs.msg.PoseStamped, queue_size=10)
+		self.pub_local      = rospy.Publisher(path_base + "setpoint_position/local", geometry_msgs.msg.PoseStamped, queue_size=10)
+		self.pub_local_vel  = rospy.Publisher(path_base + "setpoint_velocity/cmd_vel_unstamped", geometry_msgs.msg.Twist, queue_size=10)
 		self.seqId = 0
 		r = rospy.Rate(5)
 		while not self.pub_local.get_num_connections():
 			r.sleep() # wait for drone to subscribe to waypoint commands
 
-		while not self.estimate:
+		while not self.home:
 			r.sleep()
 
 		while self.state.system_status != 3:
@@ -47,18 +49,10 @@ class UAV:
 	def stateCb(self, stateMsg):
 		self.state = stateMsg
 
-	def locPosCb(self, poseMsg):
-		self.estimate = True
+	def homeCb(self, homeMsg):
+		self.home = homeMsg
 
-	def setStreamRate(self, stream_id = 6, rate = 100, on_off = True):
-		# STREAM_ALL=0 STREAM_RAW_SENSORS STREAM_EXTENDED_STATUS STREAM_RC_CHANNELS STREAM_RAW_CONTROLLER STREAM_POSITION 
-		# STREAM_EXTRA1 STREAM_EXTRA2 STREAM_EXTRA3
-		try:
-			self.streamService(stream_id = stream_id, message_rate = rate)
-		except rospy.ServiceException as e:
-			print("service set_stream_rate call failed: %s"%e)
-
-	def setMode(self, mode = 'GUIDED'):
+	def setMode(self, mode = 'OFFBOARD'):
 		try:
 			self.flightModeService(custom_mode=mode)
 		except rospy.ServiceException as e:
@@ -66,31 +60,21 @@ class UAV:
 
 	def setArmed(self, armed = True):
 		try:	
-			self.armService(armed)
+			self.armService(True)
 		except rospy.ServiceException as e:
 			print("Service arm call failed: %s"%e)
 
-	def setTakeoffMode(self, altitude = 5):
-		try:
-			self.takeoffService(altitude = altitude, latitude = 0, longitude = 0, min_pitch = 0, yaw = 0)
-		except rospy.ServiceException as e:
-			print("Service takeoff call failed: %s"%e)
-
-	def setLandMode(self):
-		try:
-			self.landService(altitude = 0, latitude = 0, longitude = 0, min_pitch = 0, yaw = 0)
-		except rospy.ServiceException as e:
-			print("Service land call failed: %s"%e)
-
-	def setLocalPos(self, movePose):
+	def setLocalPose(self, movePose):
 		header = std_msgs.msg.Header(seq = self.seqId, stamp = rospy.Time.now(), frame_id = "map")	#message header
 		self.seqId += 1
 		poseStamped = geometry_msgs.msg.PoseStamped(header = header, pose = movePose)	#create the pose message to send
 		self.pub_local.publish(poseStamped)
 
-if __name__ == '__main__':
-	#print("this is a module, not meant to be run")
+	def setLocalVel(self, moveVel):
+		moveVel = geometry_msgs.msg.Twist(linear = geometry_msgs.msg.Vector3(x=1,y=1,z=0), angular = geometry_msgs.msg.Vector3(x=0, y=0, z=0))
+		self.pub_local_vel.publish(moveVel)
 
+if __name__ == '__main__':
 	rospy.init_node('uav_control', anonymous=True)
 
 	uavID = int(rospy.get_namespace()[-2])
@@ -99,12 +83,7 @@ if __name__ == '__main__':
 		rospy.sleep(1)
 	rospy.loginfo("UAV starting")
 
-	rospy.loginfo("Entering Guided mode")
-	while not uav.state.guided:
-		uav.setMode('GUIDED')
-		rospy.sleep(1)
-
-	rospy.loginfo("Waiting for pose estimate")
+	rospy.loginfo("Waiting for home position estimate")
 	while not uav.ready:
 		rospy.sleep(1)
 
@@ -114,11 +93,15 @@ if __name__ == '__main__':
 		rospy.sleep(1)
 	rospy.loginfo("Armed")
 
-	rospy.loginfo("Taking off")
-	while uav.state.system_status == 3:
-  		uav.setTakeoffMode()
+	rospy.loginfo("Entering auto takeoff mode")
+	while uav.state.mode!="AUTO.TAKEOFF":
+		uav.setMode('AUTO.TAKEOFF')
+		rospy.sleep(1)
+	while uav.state.mode == "AUTO.TAKEOFF":
 		rospy.sleep(1)
 	rospy.loginfo("Takeoff complete")
-
-	while True:
-		uav.setStreamRate()
+	r = rospy.Rate(30)
+	while not rospy.is_shutdown():
+		uav.setMode('OFFBOARD')
+		r.sleep()
+		uav.setLocalVel(uav.desiredVel)
