@@ -2,8 +2,8 @@
 
 import sys
 import rospy
-from std_msgs.msg import Float32
-from geometry_msgs.msg import PoseStamped, TwistStamped
+from std_msgs.msg import Float32, String
+from geometry_msgs.msg import PoseStamped, Twist, TwistStamped, Vector3
 
 class Translator:
 
@@ -26,8 +26,17 @@ class Translator:
         self.wyPub = rospy.Publisher(base + 'wy', Float32, queue_size=10)
         self.wzPub = rospy.Publisher(base + 'wz', Float32, queue_size=10)
 
+        self.velCmd = Twist(Vector3(0,0,0), Vector3(0,0,0))
+        self.cmdVelPub = rospy.Publisher(base+"cmd_vel", Twist, queue_size=10)
+
         rospy.Subscriber(ns+'mavros/local_position/pose', PoseStamped, self.poseCallback)
         rospy.Subscriber(ns+'mavros/local_position/velocity_local', TwistStamped, self.twistCallback)
+
+        rospy.Subscriber(base+"cmd_vel/vx", String, self.velCmdVXCb)
+        rospy.Subscriber(base+"cmd_vel/vy", String, self.velCmdVYCb)
+        rospy.Subscriber(base+"cmd_vel/vz", String, self.velCmdVZCb)
+        rospy.Subscriber(base+"cmd_vel/wz", String, self.velCmdWZCb)
+
         rospy.spin()
 
     def poseCallback(self, poseMsg):
@@ -47,8 +56,18 @@ class Translator:
         self.wyPub.publish(twistMsg.twist.angular.y)
         self.wzPub.publish(twistMsg.twist.angular.z)
 
-
-
+    def velCmdVXCb(self, strMsg):
+        self.velCmd.linear.x = float(strMsg.data)
+        self.cmdVelPub.publish(self.velCmd)
+    def velCmdVYCb(self, strMsg):
+        self.velCmd.linear.y = float(strMsg.data)
+        self.cmdVelPub.publish(self.velCmd)
+    def velCmdVZCb(self, strMsg):
+        self.velCmd.linear.z = float(strMsg.data)
+        self.cmdVelPub.publish(self.velCmd)
+    def velCmdWZCb(self, strMsg):
+        self.velCmd.angular.z = float(strMsg.data)
+        self.cmdVelPub.publish(self.velCmd)
 
 if __name__ == '__main__':
     try:
