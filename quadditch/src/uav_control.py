@@ -113,9 +113,10 @@ if __name__ == '__main__':
 		rospy.sleep(1)
 	rospy.loginfo("Takeoff complete")
 
-	uav.setParam('MPC_ACC_HOR', 0.1) # horizontal acceleration for jerk limited trajectory mode
-	uav.setParam("MPC_ACC_HOR_MAX", 0.1) # horizontal acceleration for line tracking mode
-	uav.setParam("MPC_XY_VEL_MAX", 1.0) #max horizontal velocity
+	# acceleration limit is currently not working
+	uav.setParam('MPC_ACC_HOR', 0.01) # horizontal acceleration for jerk limited trajectory mode
+	uav.setParam("MPC_ACC_HOR_MAX", 0.01) # horizontal acceleration for line tracking mode
+	uav.setParam("MPC_XY_VEL_MAX", 5.0) #max horizontal velocity
 	uav.setParam("MPC_Z_VEL_MAX_DN", 0.8)#max descend vel
 	uav.setParam("MPC_Z_VEL_MAX_UP", 1.0)#max ascend vel
 
@@ -123,4 +124,4 @@ if __name__ == '__main__':
 	while not rospy.is_shutdown():
 		uav.setMode('OFFBOARD')
 		r.sleep()
-		uav.setLocalVel(uav.desiredVel)
+		#uav.setLocalVel(uav.desiredVel)
