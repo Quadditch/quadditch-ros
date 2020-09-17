@@ -1,0 +1,7 @@
+empy==3.3.4
+numpy==1.19.2
+toml==0.10.1
+Jinja2==2.11.2
+packaging==20.4
+pyparsing==2.4.7
+
