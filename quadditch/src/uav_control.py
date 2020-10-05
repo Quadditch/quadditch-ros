@@ -2,6 +2,7 @@
 
 import rospy
 import mavros_msgs.msg
+import std_msgs.msg
 import mavros_msgs.srv
 import geometry_msgs.msg
 import sys
@@ -33,6 +34,7 @@ class UAV:
 		self.flightModeService = rospy.ServiceProxy(path_base + "set_mode",	mavros_msgs.srv.SetMode)
 		self.paramSetService   = rospy.ServiceProxy(path_base + "param/set", mavros_msgs.srv.ParamSet)
 
+		self.pub_alive      = rospy.Publisher("/alive", std_msgs.msg.String, queue_size=10)
 		self.pub_local      = rospy.Publisher(path_base + "setpoint_position/local", geometry_msgs.msg.PoseStamped, queue_size=10)
 		self.pub_local_vel  = rospy.Publisher(path_base + "setpoint_velocity/cmd_vel_unstamped", geometry_msgs.msg.Twist, queue_size=10)
 		self.seqId = 0
@@ -55,7 +57,7 @@ class UAV:
 	def homeCb(self, homeMsg):
 		self.home = homeMsg
 
-	def setMode(self, mode = 'OFFBOARD'):
+	def setMode(self, mode = "OFFBOARD"):
 		try:
 			self.flightModeService(custom_mode=mode)
 		except rospy.ServiceException as e:
@@ -85,11 +87,15 @@ class UAV:
 	def velCmdCb(self, velMsg):
 		self.desiredVel = velMsg
 
-if __name__ == '__main__':
-	rospy.init_node('uav_control', anonymous=True)
+	def shutdownCb(self):
+		sys.exit(0)
 
+if __name__ == "__main__":
+	rospy.init_node("uav_control", anonymous=True)
 	uavID = int(rospy.get_namespace()[-2])
 	uav = UAV(uavID)
+	rospy.on_shutdown(uav.shutdownCb)
+
 	while not uav.ready:
 		rospy.sleep(1)
 	rospy.loginfo("UAV starting")
@@ -106,22 +112,28 @@ if __name__ == '__main__':
 
 	rospy.loginfo("Entering auto takeoff mode")
 	while uav.state.mode!="AUTO.TAKEOFF":
-		uav.setMode('AUTO.TAKEOFF')
+		uav.setMode("AUTO.TAKEOFF")
 		rospy.sleep(1)
+
 
 	while uav.state.mode == "AUTO.TAKEOFF":
 		rospy.sleep(1)
 	rospy.loginfo("Takeoff complete")
-
+	
+	#apparently these don't work before takeoff
+	uav.setParam("MIS_TAKEOFF_ALT", 5)
+	uav.setParam("MIS_TKO_SPEED", 1)
 	# acceleration limit is currently not working
-	uav.setParam('MPC_ACC_HOR', 0.01) # horizontal acceleration for jerk limited trajectory mode
+	uav.setParam("MPC_ACC_HOR", 0.01) # horizontal acceleration for jerk limited trajectory mode
 	uav.setParam("MPC_ACC_HOR_MAX", 0.01) # horizontal acceleration for line tracking mode
 	uav.setParam("MPC_XY_VEL_MAX", 5.0) #max horizontal velocity
 	uav.setParam("MPC_Z_VEL_MAX_DN", 0.8)#max descend vel
 	uav.setParam("MPC_Z_VEL_MAX_UP", 1.0)#max ascend vel
 
-	r = rospy.Rate(30)
+
 	while not rospy.is_shutdown():
-		uav.setMode('OFFBOARD')
-		r.sleep()
+		if uav.state.mode!="OFFBOARD":
+			uav.setMode("OFFBOARD")
+		uav.pub_alive.publish("/uav"+str(uav.uav_id))
+		rospy.sleep(0.5)
 		#uav.setLocalVel(uav.desiredVel)
