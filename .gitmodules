@@ -1,4 +1,3 @@
-
-[submodule "quadditch/modules/Firmware"]
-	path = quadditch/modules/Firmware
+[submodule "px4"]
+	path = px4
 	url = https://github.com/PX4/Firmware.git

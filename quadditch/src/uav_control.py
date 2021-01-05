@@ -122,8 +122,7 @@ if __name__ == "__main__":
 	
 	#apparently these don't work before takeoff
 	uav.setParam("MIS_TAKEOFF_ALT", 5)
-	uav.setParam("MIS_TKO_SPEED", 1)
-	# acceleration limit is currently not working
+	uav.setParam("MPC_TKO_SPEED", 1)
 	uav.setParam("MPC_ACC_HOR", 0.01) # horizontal acceleration for jerk limited trajectory mode
 	uav.setParam("MPC_ACC_HOR_MAX", 0.01) # horizontal acceleration for line tracking mode
 	uav.setParam("MPC_XY_VEL_MAX", 5.0) #max horizontal velocity
