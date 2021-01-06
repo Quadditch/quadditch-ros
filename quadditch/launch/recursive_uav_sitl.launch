@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<launch>
+    <arg name="ID" default="0"/>
+    <arg name="vehicle" default="iris"/>
+    <group ns="$(eval 'uav'+str(ID))">
+        <!-- MAVROS and vehicle configs -->
+        <arg name="fcu_url" default="$(eval 'udp://:'+str(14540+int(ID))+'@localhost:'+str(14580+int(ID)))"/>
+        <!-- PX4 SITL and vehicle spawn -->
+        <include file="$(find px4)/launch/single_vehicle_spawn.launch">
+            <arg name="x" value="$(eval 0+3*int(ID))"/>
+            <arg name="y" value="0"/>
+            <arg name="z" value="0"/>
+            <arg name="R" value="0"/>
+            <arg name="P" value="0"/>
+            <arg name="Y" value="0"/>
+            <arg name="vehicle" value="$(arg vehicle)"/>
+            <arg name="mavlink_udp_port" value="$(eval 14560+int(ID))"/>
+            <arg name="mavlink_tcp_port" value="$(eval 4560+int(ID))"/>
+            <arg name="ID" value="$(arg ID)"/>
+        </include>
+        <!-- MAVROS -->
+        <include file="$(find mavros)/launch/px4.launch">
+            <arg name="fcu_url" value="$(arg fcu_url)"/>
+            <arg name="gcs_url" value=""/>
+            <arg name="tgt_system" value="$(eval 1 + ID)"/>
+            <arg name="tgt_component" value="1"/>
+        </include>
+    </group>
+
+    <include file="$(dirname)/recursive_uav_sitl.launch" if="$(eval ID>0)">
+        <arg name="ID" value="$(eval ID-1)"/>
+        <arg name="vehicle" value="$(arg vehicle)"/>
+    </include>
+</launch>
