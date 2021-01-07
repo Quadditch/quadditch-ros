@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   px4
   message_generation
+  rosbridge_server
 )
 
 ## System dependencies are found with CMake's conventions
@@ -84,7 +85,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-  CATKIN_DEPENDS roscpp rospy std_msgs px4 message_runtime
+  CATKIN_DEPENDS roscpp rospy std_msgs px4 message_runtime rosbridge_server
 #  DEPENDS system_lib
 )
 

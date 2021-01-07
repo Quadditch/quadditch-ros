@@ -5,3 +5,6 @@ if there are issues with preflight checks (e.g. accel calibration)
 ``` 
 rm -rf ~/.ros
 ```
+
+
+Make sure rosbridge is at release 0.11.10 - the next version is updated for Python3 and breaks the ROSIntegration functionality

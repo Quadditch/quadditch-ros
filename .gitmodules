@@ -1,3 +1,6 @@
 [submodule "Firmware"]
 	path = Firmware
 	url = https://github.com/PX4/Firmware.git
+[submodule "rosbridge_suite"]
+	path = rosbridge_suite
+	url = https://github.com/RobotWebTools/rosbridge_suite.git

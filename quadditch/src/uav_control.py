@@ -137,5 +137,6 @@ if __name__ == "__main__":
 			uav.pub_alive.publish("/uav"+str(uav.uav_id))
 			rospy.sleep(0.5)
 			#uav.setLocalVel(uav.desiredVel)
+			
 	except rospy.exceptions.ROSInterruptException:
 		sys.exit(0)

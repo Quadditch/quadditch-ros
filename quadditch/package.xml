@@ -40,6 +40,7 @@
   <depend>roscpp</depend>
   <depend>std_msgs</depend>
   <depend>px4</depend>
+  <depend>rosbridge_server</depend>
   
   <!-- Use build_depend for packages you need at compile time: -->
   <build_depend>message_generation</build_depend>
