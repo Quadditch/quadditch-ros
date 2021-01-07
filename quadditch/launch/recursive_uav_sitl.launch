@@ -2,7 +2,11 @@
 <launch>
     <arg name="ID" default="0"/>
     <arg name="vehicle" default="iris"/>
+
     <group ns="$(eval 'uav'+str(ID))">
+        <!-- automatically arm and take off drone -->
+        <node name="uav_control" pkg="quadditch" type="uav_control.py" output="screen"/>
+
         <!-- MAVROS and vehicle configs -->
         <arg name="fcu_url" default="$(eval 'udp://:'+str(14540+int(ID))+'@localhost:'+str(14580+int(ID)))"/>
         <!-- PX4 SITL and vehicle spawn -->

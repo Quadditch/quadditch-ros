@@ -1,5 +1,15 @@
 <?xml version="1.0"?>
 <launch>
+
+    <arg name="fencePath" default = "$(find quadditch)/config/cage_5m_buffer_geofence.fen" />
+    <rosparam param="fencePath" subst_value="True">$(arg fencePath)</rosparam>
+
+    <include file="$(find rosbridge_server)/launch/rosbridge_tcp.launch">
+        <arg name = "bson_only_mode" value="True" />
+    </include>
+
+    <node name="QGroundControl" pkg="quadditch" type="qgc.sh" output="log"/>
+
     <!-- MAVROS posix SITL environment launch script -->
     <!-- launches Gazebo environment and 2x: MAVROS, PX4 SITL, and spawns vehicle -->
     <!-- vehicle model and world -->
@@ -14,6 +24,7 @@
 
     <!-- maximum of 10 UAS -->    
     <arg name="num" default="4"/>
+
 
     <!-- Gazebo sim -->
     <include file="$(find gazebo_ros)/launch/empty_world.launch">

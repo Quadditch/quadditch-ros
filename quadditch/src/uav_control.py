@@ -119,7 +119,7 @@ if __name__ == "__main__":
 	while uav.state.mode == "AUTO.TAKEOFF":
 		rospy.sleep(1)
 	rospy.loginfo("Takeoff complete")
-	
+
 	#apparently these don't work before takeoff
 	uav.setParam("MIS_TAKEOFF_ALT", 5)
 	uav.setParam("MPC_TKO_SPEED", 1)
