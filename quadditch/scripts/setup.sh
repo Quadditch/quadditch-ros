@@ -2,6 +2,9 @@
 
 compile_px4_sitl(){
     export DONT_RUN=1
+    export PX4_HOME_LAT=37.2229
+    export PX4_HOME_LON=-80.4324
+    #export PX4_HOME_ALT=28.5
     cd $1
     make px4_sitl_default gazebo -j8
     return
