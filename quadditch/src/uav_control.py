@@ -7,30 +7,34 @@ import mavros_msgs.srv
 import geometry_msgs.msg
 import sys
 
+
+cage_origin = (37.2229, -80.432404, 455.3)
 class UAV:
 	def __init__(self, uav_id):
 		self.ready = False
+		self.home_set = False
 		self.uav_id = uav_id
 
 		path_base = "/uav"+str(uav_id)+"/mavros/"
 
 		self.state = mavros_msgs.msg.State()
 		rospy.Subscriber(path_base + "state", mavros_msgs.msg.State, self.stateCb)
-
-		self.home = False
+		
 		rospy.Subscriber(path_base + "home_position/home", mavros_msgs.msg.HomePosition, self.homeCb)
 
 		self.desiredVel = geometry_msgs.msg.Twist(geometry_msgs.msg.Vector3(0,0,0),geometry_msgs.msg.Vector3(0,0,0))
 		rospy.Subscriber("/uav"+str(uav_id)+"/unreal/cmd_vel", geometry_msgs.msg.Twist, self.velCmdCb)
+
 
 		rospy.wait_for_service(path_base + "cmd/land")
 		rospy.wait_for_service(path_base + "cmd/takeoff")
 		rospy.wait_for_service(path_base + "cmd/arming")
 		rospy.wait_for_service(path_base + "set_mode")
 		rospy.wait_for_service(path_base + "param/set")
-		self.landService	   = rospy.ServiceProxy(path_base + "cmd/land",	mavros_msgs.srv.CommandTOL)
-		self.takeoffService    = rospy.ServiceProxy(path_base + "cmd/takeoff", mavros_msgs.srv.CommandTOL)
-		self.armService		   = rospy.ServiceProxy(path_base + "cmd/arming",  mavros_msgs.srv.CommandBool)
+		self.landService	   = rospy.ServiceProxy(path_base + "cmd/land",	    mavros_msgs.srv.CommandTOL)
+		self.takeoffService    = rospy.ServiceProxy(path_base + "cmd/takeoff",  mavros_msgs.srv.CommandTOL)
+		self.armService		   = rospy.ServiceProxy(path_base + "cmd/arming",   mavros_msgs.srv.CommandBool)
+		self.homeService	   = rospy.ServiceProxy(path_base + "cmd/set_home", mavros_msgs.srv.CommandHome)
 		self.flightModeService = rospy.ServiceProxy(path_base + "set_mode",	mavros_msgs.srv.SetMode)
 		self.paramSetService   = rospy.ServiceProxy(path_base + "param/set", mavros_msgs.srv.ParamSet)
 
@@ -42,7 +46,7 @@ class UAV:
 		while not self.pub_local.get_num_connections():
 			r.sleep() # wait for drone to subscribe to waypoint commands
 
-		while not self.home:
+		while not self.home_set:
 			r.sleep()
 
 		while self.state.system_status != 3:
@@ -55,7 +59,11 @@ class UAV:
 		self.state = stateMsg
 
 	def homeCb(self, homeMsg):
-		self.home = homeMsg
+		if not self.home_set:
+			result = self.homeService(current_gps=False, yaw = 0, latitude = cage_origin[0], longitude = cage_origin[1], altitude = cage_origin[2])
+			if result.success:
+				self.home_set = True
+
 
 	def setMode(self, mode = "OFFBOARD"):
 		try:
@@ -102,7 +110,7 @@ if __name__ == "__main__":
 		rospy.loginfo("UAV starting")
 
 		rospy.loginfo("Waiting for home position estimate")
-		while not uav.home:
+		while not uav.home_set:
 			rospy.sleep(1)
 
 		rospy.loginfo("Arming")
