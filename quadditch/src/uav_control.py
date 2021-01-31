@@ -8,7 +8,7 @@ import geometry_msgs.msg
 import sys
 
 
-cage_origin = (37.2229, -80.432404, 455.3)
+cage_origin = (37.2229, -80.432404, 455.3 + 32.8)  # need to add 32 offset for some reason
 class UAV:
 	def __init__(self, uav_id):
 		self.ready = False

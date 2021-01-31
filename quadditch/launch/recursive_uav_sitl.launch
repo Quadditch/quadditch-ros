@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <launch>
     <arg name="ID" default="0"/>
+    <!-- <arg name="vehicle" default="typhoon_h480"/> -->
     <arg name="vehicle" default="iris"/>
 
     <group ns="$(eval 'uav'+str(ID))">
