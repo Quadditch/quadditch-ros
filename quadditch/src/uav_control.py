@@ -19,6 +19,8 @@ class UAV:
 
 		self.state = mavros_msgs.msg.State()
 		rospy.Subscriber(path_base + "state", mavros_msgs.msg.State, self.stateCb)
+		rospy.Subscriber("/admin/cmd", std_msgs.msg.String, self.adminCb)
+
 		
 		rospy.Subscriber(path_base + "home_position/home", mavros_msgs.msg.HomePosition, self.homeCb)
 
@@ -41,6 +43,7 @@ class UAV:
 		self.pub_alive      = rospy.Publisher("/alive", std_msgs.msg.String, queue_size=10)
 		self.pub_local      = rospy.Publisher(path_base + "setpoint_position/local", geometry_msgs.msg.PoseStamped, queue_size=10)
 		self.pub_local_vel  = rospy.Publisher(path_base + "setpoint_velocity/cmd_vel_unstamped", geometry_msgs.msg.Twist, queue_size=10)
+		self.pub_admin_res  = rospy.Publisher("/admin/result", std_msgs.msg.String, queue_size=10)
 		self.seqId = 0
 		r = rospy.Rate(5)
 		while not self.pub_local.get_num_connections():
@@ -63,6 +66,48 @@ class UAV:
 			result = self.homeService(current_gps=False, yaw = 0, latitude = cage_origin[0], longitude = cage_origin[1], altitude = cage_origin[2])
 			if result.success:
 				self.home_set = True
+
+
+	def adminCb(self, cmdMsg):
+		if cmdMsg.data.split()[0]=="/uav"+str(self.uav_id):
+			if cmdMsg.data.split()[1]=="takeoff":
+				# Hard-code waypoint locations for each drone
+				rospy.loginfo("Arming")
+				while not uav.state.armed:
+					uav.setArmed(True)
+					rospy.sleep(1)
+				rospy.loginfo("Armed")
+
+				rospy.loginfo("Entering auto takeoff mode")
+
+
+				# ToDo GO TO STARTING POSITION
+
+				# ToDo put this in a callback for the waypoint mission completion
+
+				#apparently these don't work before takeoff
+				uav.setParam("MIS_TAKEOFF_ALT", 5)
+				uav.setParam("MPC_TKO_SPEED", 1)
+				uav.setParam("MPC_ACC_HOR", 0.01) # horizontal acceleration for jerk limited trajectory mode
+				uav.setParam("MPC_ACC_HOR_MAX", 0.01) # horizontal acceleration for line tracking mode
+				uav.setParam("MPC_XY_VEL_MAX", 5.0) #max horizontal velocity
+				uav.setParam("MPC_Z_VEL_MAX_DN", 0.8)#max descend vel
+				uav.setParam("MPC_Z_VEL_MAX_UP", 1.0)#max ascend vel
+
+				uav.setMode("AUTO.TAKEOFF")
+
+				self.pub_admin_res.publish(std_msgs.msg.String("/uav"+str(self.uav_id)+" takeoff"))
+				rospy.loginfo("Takeoff complete")
+
+			elif cmdMsg.data.split()[1]=="land":
+				
+				# ToDo RETURN TO TAKEOFF POSITION
+
+				uav.setMode("AUTO.LAND")
+
+				# ToDo wait until landing complete
+				self.pub_admin_res.publish(std_msgs.msg.String("uav"+str(self.uav_id)+" land"))
+
 
 
 	def setMode(self, mode = "OFFBOARD"):
@@ -113,38 +158,12 @@ if __name__ == "__main__":
 		while not uav.home_set:
 			rospy.sleep(1)
 
-		rospy.loginfo("Arming")
-		while not uav.state.armed:
-			uav.setArmed(True)
-			rospy.sleep(1)
-		rospy.loginfo("Armed")
+		rospy.loginfo("ready to fly")
 
-		rospy.loginfo("Entering auto takeoff mode")
-		while uav.state.mode!="AUTO.TAKEOFF":
-			uav.setMode("AUTO.TAKEOFF")
-			rospy.sleep(1)
-
-
-		while uav.state.mode == "AUTO.TAKEOFF":
-			rospy.sleep(1)
-		rospy.loginfo("Takeoff complete")
-
-		#apparently these don't work before takeoff
-		uav.setParam("MIS_TAKEOFF_ALT", 5)
-		uav.setParam("MPC_TKO_SPEED", 1)
-		uav.setParam("MPC_ACC_HOR", 0.01) # horizontal acceleration for jerk limited trajectory mode
-		uav.setParam("MPC_ACC_HOR_MAX", 0.01) # horizontal acceleration for line tracking mode
-		uav.setParam("MPC_XY_VEL_MAX", 5.0) #max horizontal velocity
-		uav.setParam("MPC_Z_VEL_MAX_DN", 0.8)#max descend vel
-		uav.setParam("MPC_Z_VEL_MAX_UP", 1.0)#max ascend vel
-
-
-		while not rospy.is_shutdown():
-			if uav.state.mode!="OFFBOARD":
-				uav.setMode("OFFBOARD")
+		while not rospy.is_shutdown():		
 			uav.pub_alive.publish("/uav"+str(uav.uav_id))
 			rospy.sleep(0.5)
-			#uav.setLocalVel(uav.desiredVel)
+			# set offboard mode
 			
 	except rospy.exceptions.ROSInterruptException:
 		sys.exit(0)
