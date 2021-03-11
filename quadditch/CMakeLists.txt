@@ -11,6 +11,10 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  mavros_msgs
+  sensor_msgs
+  geographic_msgs
+  geometry_msgs
   px4
   message_generation
   rosbridge_server
@@ -72,6 +76,10 @@ find_package(catkin REQUIRED COMPONENTS
  generate_messages(
    DEPENDENCIES
    std_msgs
+   mavros_msgs
+   sensor_msgs
+   geographic_msgs
+   geometry_msgs
  )
 
 ###################################
@@ -85,7 +93,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-  CATKIN_DEPENDS roscpp rospy std_msgs px4 message_runtime rosbridge_server
+  CATKIN_DEPENDS roscpp rospy std_msgs px4 message_runtime rosbridge_server mavros_msgs sensor_msgs geographic_msgs geometry_msgs
 #  DEPENDS system_lib
 )
 

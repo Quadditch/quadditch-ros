@@ -5,49 +5,68 @@ import mavros_msgs.msg
 import std_msgs.msg
 import mavros_msgs.srv
 import geometry_msgs.msg
+import sensor_msgs.msg
 import sys
 
 
-cage_origin = (37.2229, -80.432404, 455.3 + 32.8)  # need to add 32 offset for some reason
+num_drones = 8
+
+alt_ground = 455.3 + 32.8 # need to add 32 offset for some reason
+alt_standard = 9
+alt_min = 3
+alt_layer_inc = 1.5
+alt_max = alt_min + alt_layer_inc*num_drones
+
+cage_origin = (37.2229, -80.432404, alt_ground)
+
+landing_positions = [(37.222895, -80.432404), 
+					(37.222977, -80.432511), 
+					(37.223041, -80.432635),
+					(37.223107, -80.432737)]
+
+starting_positions = [	(37.222859, -80.432452),
+						(37.222938, -80.432361), 
+						(37.223184, -80.432906),
+						(37.223252, -80.432790)]
 class UAV:
 	def __init__(self, uav_id):
 		self.ready = False
 		self.home_set = False
 		self.uav_id = uav_id
+		self.TOL = None # takeoff or landing mode
+		self.TOL_state = None # prep, move, finish
+		self.land_index = 0 # to be set by game master at landing time
+		self.alt_sorted = alt_standard
 
 		path_base = "/uav"+str(uav_id)+"/mavros/"
 
 		self.state = mavros_msgs.msg.State()
 		rospy.Subscriber(path_base + "state", mavros_msgs.msg.State, self.stateCb)
-		rospy.Subscriber("/admin/cmd", std_msgs.msg.String, self.adminCb)
-
-		
 		rospy.Subscriber(path_base + "home_position/home", mavros_msgs.msg.HomePosition, self.homeCb)
-
-		self.desiredVel = geometry_msgs.msg.Twist(geometry_msgs.msg.Vector3(0,0,0),geometry_msgs.msg.Vector3(0,0,0))
-		rospy.Subscriber("/uav"+str(uav_id)+"/unreal/cmd_vel", geometry_msgs.msg.Twist, self.velCmdCb)
-
+		self.gpsPos = sensor_msgs.msg.NavSatFix()
+		rospy.Subscriber(path_base + "global_position/global", sensor_msgs.msg.NavSatFix, self.globalCb)
+		rospy.Subscriber("/admin/cmd", std_msgs.msg.String, self.adminCb)
+		rospy.Subscriber("/admin/land_idx", std_msgs.msg.String, self.landIndexCb)
+		rospy.Subscriber(path_base + "mission/reached", mavros_msgs.msg.WaypointReached, self.wpCb)
 
 		rospy.wait_for_service(path_base + "cmd/land")
 		rospy.wait_for_service(path_base + "cmd/takeoff")
 		rospy.wait_for_service(path_base + "cmd/arming")
 		rospy.wait_for_service(path_base + "set_mode")
 		rospy.wait_for_service(path_base + "param/set")
-		self.landService	   = rospy.ServiceProxy(path_base + "cmd/land",	    mavros_msgs.srv.CommandTOL)
-		self.takeoffService    = rospy.ServiceProxy(path_base + "cmd/takeoff",  mavros_msgs.srv.CommandTOL)
-		self.armService		   = rospy.ServiceProxy(path_base + "cmd/arming",   mavros_msgs.srv.CommandBool)
-		self.homeService	   = rospy.ServiceProxy(path_base + "cmd/set_home", mavros_msgs.srv.CommandHome)
-		self.flightModeService = rospy.ServiceProxy(path_base + "set_mode",	mavros_msgs.srv.SetMode)
-		self.paramSetService   = rospy.ServiceProxy(path_base + "param/set", mavros_msgs.srv.ParamSet)
+		self.landService	   = rospy.ServiceProxy(path_base + "cmd/land",	     mavros_msgs.srv.CommandTOL)
+		self.takeoffService    = rospy.ServiceProxy(path_base + "cmd/takeoff",   mavros_msgs.srv.CommandTOL)
+		self.armService		   = rospy.ServiceProxy(path_base + "cmd/arming",    mavros_msgs.srv.CommandBool)
+		self.homeService	   = rospy.ServiceProxy(path_base + "cmd/set_home",  mavros_msgs.srv.CommandHome)
+		self.flightModeService = rospy.ServiceProxy(path_base + "set_mode",	     mavros_msgs.srv.SetMode)
+		self.paramSetService   = rospy.ServiceProxy(path_base + "param/set",     mavros_msgs.srv.ParamSet)
+		self.wpClearService    = rospy.ServiceProxy(path_base + "mission/clear", mavros_msgs.srv.WaypointClear)
+		self.wpSetService      = rospy.ServiceProxy(path_base + "mission/push",  mavros_msgs.srv.WaypointPush)
 
 		self.pub_alive      = rospy.Publisher("/alive", std_msgs.msg.String, queue_size=10)
-		self.pub_local      = rospy.Publisher(path_base + "setpoint_position/local", geometry_msgs.msg.PoseStamped, queue_size=10)
-		self.pub_local_vel  = rospy.Publisher(path_base + "setpoint_velocity/cmd_vel_unstamped", geometry_msgs.msg.Twist, queue_size=10)
 		self.pub_admin_res  = rospy.Publisher("/admin/result", std_msgs.msg.String, queue_size=10)
 		self.seqId = 0
 		r = rospy.Rate(5)
-		while not self.pub_local.get_num_connections():
-			r.sleep() # wait for drone to subscribe to waypoint commands
 
 		while not self.home_set:
 			r.sleep()
@@ -66,48 +85,202 @@ class UAV:
 			result = self.homeService(current_gps=False, yaw = 0, latitude = cage_origin[0], longitude = cage_origin[1], altitude = cage_origin[2])
 			if result.success:
 				self.home_set = True
+	
+	def globalCb(self, gpsMsg):
+		self.gpsPos = gpsMsg
+
+
+	def wpCb(self, wpMsg):
+		if self.TOL == "takeoff":
+			if self.TOL_state == "prep":
+				self.pub_admin_res.publish(std_msgs.msg.String("/uav"+str(self.uav_id)+" TAKEOFF PREP"))
+				rospy.loginfo("Takeoff prep")
+			elif self.TOL_state == "move":
+				self.pub_admin_res.publish(std_msgs.msg.String("/uav"+str(self.uav_id)+" TAKEOFF MOVE"))
+				rospy.loginfo("Takeoff half")
+			elif self.TOL_state == "finish":
+				# set slow parameters for gameplay
+				self.setParam("MPC_TKO_SPEED", 1)
+				self.setParam("MPC_ACC_HOR", 0.01) 		# horizontal acceleration for jerk limited trajectory mode
+				self.setParam("MPC_ACC_HOR_MAX", 0.01) 	# horizontal acceleration for line tracking mode
+				self.setParam("MPC_XY_VEL_MAX", 5.0) 	# max horizontal velocity
+				self.setParam("MPC_Z_VEL_MAX_DN", 0.8)	# max descend vel
+				self.setParam("MPC_Z_VEL_MAX_UP", 1.0)	# max ascend vel
+				self.pub_admin_res.publish(std_msgs.msg.String("/uav"+str(self.uav_id)+" TAKEOFF FINISH"))
+				rospy.loginfo("Takeoff complete")
+				self.TOL = None
+				self.TOL_state = None
+				self.setMode("OFFBOARD")
+
+		elif self.TOL == "landing":
+			if self.TOL_state == "prep":
+				self.pub_admin_res.publish(std_msgs.msg.String("/uav"+str(self.uav_id)+" LANDING PREP"))
+				rospy.loginfo("Landing prep")
+			elif self.TOL_state == "move":
+				rospy.loginfo("Landing half")
+				self.pub_admin_res.publish(std_msgs.msg.String("/uav"+str(self.uav_id)+" LANDING MOVE"))
+			elif self.TOL_state == "finish":
+				rospy.loginfo("Landing complete")
+				self.pub_admin_res.publish(std_msgs.msg.String("/uav"+str(self.uav_id)+" LANDING FINISH"))
+				self.TOL = None
+				self.TOL_state = None
+	
+
+	def landIndexCb(self, indexMsg):
+		splits = indexMsg.data.split()
+		if splits[0] == "/uav"+str(self.uav_id):
+			self.land_index = int(splits[1])
 
 
 	def adminCb(self, cmdMsg):
-		if cmdMsg.data.split()[0]=="/uav"+str(self.uav_id):
-			if cmdMsg.data.split()[1]=="takeoff":
+		splits = cmdMsg.data.split()
+		if splits[0]=="TAKEOFF":
+			if splits[1]=="PREP":
+				self.TOL = "takeoff"
 				# Hard-code waypoint locations for each drone
 				rospy.loginfo("Arming")
-				while not uav.state.armed:
-					uav.setArmed(True)
+				while not self.state.armed:
+					self.setArmed(True)
 					rospy.sleep(1)
 				rospy.loginfo("Armed")
 
-				rospy.loginfo("Entering auto takeoff mode")
-
-
-				# ToDo GO TO STARTING POSITION
-
-				# ToDo put this in a callback for the waypoint mission completion
-
-				#apparently these don't work before takeoff
-				uav.setParam("MIS_TAKEOFF_ALT", 5)
-				uav.setParam("MPC_TKO_SPEED", 1)
-				uav.setParam("MPC_ACC_HOR", 0.01) # horizontal acceleration for jerk limited trajectory mode
-				uav.setParam("MPC_ACC_HOR_MAX", 0.01) # horizontal acceleration for line tracking mode
-				uav.setParam("MPC_XY_VEL_MAX", 5.0) #max horizontal velocity
-				uav.setParam("MPC_Z_VEL_MAX_DN", 0.8)#max descend vel
-				uav.setParam("MPC_Z_VEL_MAX_UP", 1.0)#max ascend vel
-
-				uav.setMode("AUTO.TAKEOFF")
-
-				self.pub_admin_res.publish(std_msgs.msg.String("/uav"+str(self.uav_id)+" takeoff"))
-				rospy.loginfo("Takeoff complete")
-
-			elif cmdMsg.data.split()[1]=="land":
+				# Set fast parameters
+				#self.setParam("MAV_SYS_ID", float(self.uav_id+1))
+				self.setParam("MIS_TAKEOFF_ALT", alt_min)
+				self.setParam("MIS_LTRMIN_ALT", alt_min)
+				self.setParam("MPC_TKO_SPEED", 10)
+				self.setParam("MPC_ACC_HOR", 1) 		# horizontal acceleration for jerk limited trajectory mode
+				self.setParam("MPC_ACC_HOR_MAX", 1) 	# horizontal acceleration for line tracking mode
+				self.setParam("MPC_XY_VEL_MAX", 50.0) 	# max horizontal velocity
+				self.setParam("MPC_Z_VEL_MAX_DN", 10)	# max descend vel
+				self.setParam("MPC_Z_VEL_MAX_UP", 10)	# max ascend vel
 				
-				# ToDo RETURN TO TAKEOFF POSITION
+				self.setMode("AUTO.TAKEOFF")
+				# wait for takeoff to begin
+				while self.state.mode != "AUTO.TAKEOFF":
+					rospy.sleep(0.5)
+				# wait for takeoff to end
+				while self.state.mode == "AUTO.TAKEOFF":
+					rospy.sleep(0.5)
 
-				uav.setMode("AUTO.LAND")
+				# send takeoff mission
+				self.wpClearService()
+				self.TOL_state = "prep"
+				self.wpSetService(start_index=0, waypoints = [
+					mavros_msgs.msg.Waypoint(frame=0, command=16, is_current=True, autocontinue=True,
+											param1=0,		# hold time
+											param2=2,		# acceptance radius
+											param3=0, 		# pass radius
+											param4=0, 		# yaw
+											x_lat=self.gpsPos.latitude,  	# latitude
+											y_long=self.gpsPos.longitude, 	# longitude
+											z_alt=alt_ground+alt_min+alt_layer_inc*(self.uav_id+1))				# altitude
+					])
+				while self.state.mode != "AUTO.MISSION":
+					self.setMode("AUTO.MISSION")
+					rospy.sleep(0.5)
 
-				# ToDo wait until landing complete
-				self.pub_admin_res.publish(std_msgs.msg.String("uav"+str(self.uav_id)+" land"))
+			elif splits[1]=="MOVE":
+				# move to game start position, sorted altitude
+				self.wpClearService()
+				self.TOL_state = "move"
+				self.wpSetService(start_index=0, waypoints = [
+					mavros_msgs.msg.Waypoint(frame=0, command=16, is_current=True, autocontinue=True,
+											param1=0,		# hold time
+											param2=1,		# acceptance radius
+											param3=0, 		# pass radius
+											param4=0, 		# yaw
+											x_lat=starting_positions[self.uav_id][0],	# latitude
+											y_long=starting_positions[self.uav_id][1], 	# longitude
+											z_alt=alt_ground+alt_min+alt_layer_inc*(self.uav_id+1))				# altitude
+					])
+				
 
+			elif splits[1]=="FINISH":
+				# move to start position at standard altitude
+				self.wpClearService()
+				self.TOL_state = "finish"
+				self.wpSetService(start_index=0, waypoints = [
+					mavros_msgs.msg.Waypoint(frame=0, command=16, is_current=True, autocontinue=True,
+											param1=0,		# hold time
+											param2=1,		# acceptance radius
+											param3=0, 		# pass radius
+											param4=0, 		# yaw
+											x_lat=starting_positions[self.uav_id][0],	# latitude
+											y_long=starting_positions[self.uav_id][1], 	# longitude
+											z_alt=alt_ground+alt_standard)				# altitude
+					])
+
+		
+		elif splits[0]=="LANDING":
+			if splits[1]=="PREP":
+				self.TOL = "landing"
+				
+				# set fast parameters
+				self.setParam("MPC_ACC_HOR", 1) 		# horizontal acceleration for jerk limited trajectory mode
+				self.setParam("MPC_ACC_HOR_MAX", 1) 	# horizontal acceleration for line tracking mode
+				self.setParam("MPC_XY_VEL_MAX", 50.0) 	# max horizontal velocity
+				self.setParam("MPC_Z_VEL_MAX_DN", 10)	# max descend vel
+				self.setParam("MPC_Z_VEL_MAX_UP", 10)	# max ascend vel
+
+				# ascend to sorted altitude
+				self.alt_sorted = alt_ground+alt_max-alt_layer_inc*self.land_index
+				if self.alt_sorted < alt_min:
+					rospy.loginfo("commanded landing altitude too low!!")
+					rospy.logfatal("commanded landing altitude too low!!")
+					sys.exit(-1)
+
+				self.wpClearService()
+				self.TOL_state = "prep"
+				self.wpSetService(start_index=0, waypoints = [
+					mavros_msgs.msg.Waypoint(frame=0, command=16, is_current=True, autocontinue=True,
+											param1=0,		# hold time
+											param2=1,		# acceptance radius
+											param3=0, 		# pass radius
+											param4=0, 		# yaw
+											x_lat=self.gpsPos.latitude,  	# latitude
+											y_long=self.gpsPos.longitude, 	# longitude
+											z_alt=self.alt_sorted) 				# altitude	
+											])
+				while self.state.mode != "AUTO.MISSION":
+					self.setMode("AUTO.MISSION")
+					rospy.sleep(0.5)				
+
+			
+			elif splits[1]=="MOVE":
+				# move and hold above landing position
+				self.wpClearService()
+				self.TOL_state = "move"
+				self.wpSetService(start_index=0, waypoints = [
+					mavros_msgs.msg.Waypoint(frame=0, command=16, is_current=True, autocontinue=True,
+											param1=0,		# hold time
+											param2=1,		# acceptance radius
+											param3=0, 		# pass radius
+											param4=0, 		# yaw
+											x_lat=landing_positions[self.uav_id][0], 	# latitude
+											y_long=landing_positions[self.uav_id][1], 	# longitude
+											z_alt=self.alt_sorted) 		  				# altitude
+					])
+
+				
+				
+
+			elif splits[1]=="FINISH":
+				# land
+				self.wpClearService()
+				self.TOL_state = "finish"
+				self.wpSetService(start_index=0, waypoints = [
+					mavros_msgs.msg.Waypoint(frame=0, command=21, is_current=False, autocontinue=True,
+											param1=alt_ground-5, 	# abort alt
+											param2=0, 				# no precision landing
+											param3=0, 				# NA
+											param4=0, 				# yaw
+											x_lat=landing_positions[self.uav_id][0], # latitude
+											y_long=landing_positions[self.uav_id][1], # longitude
+											z_alt=alt_ground, 						  # altitude
+											)])
+				
+				
 
 
 	def setMode(self, mode = "OFFBOARD"):
@@ -127,18 +300,6 @@ class UAV:
 			self.armService(True)
 		except rospy.ServiceException as e:
 			print("Service arm call failed: %s"%e)
-
-	def setLocalPose(self, movePose):
-		header = std_msgs.msg.Header(seq = self.seqId, stamp = rospy.Time.now(), frame_id = "map")	#message header
-		self.seqId += 1
-		poseStamped = geometry_msgs.msg.PoseStamped(header = header, pose = movePose)	#create the pose message to send
-		self.pub_local.publish(poseStamped)
-
-	def setLocalVel(self, moveVel):
-		self.pub_local_vel.publish(moveVel)
-
-	def velCmdCb(self, velMsg):
-		self.desiredVel = velMsg
 
 	def shutdownCb(self):
 		sys.exit(0)

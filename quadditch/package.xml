@@ -39,6 +39,10 @@
   <depend>rospy</depend>
   <depend>roscpp</depend>
   <depend>std_msgs</depend>
+  <depend>mavros_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geographic_msgs</depend>
+  <depend>geometry_msgs</depend>
   <depend>px4</depend>
   <depend>rosbridge_server</depend>
   
