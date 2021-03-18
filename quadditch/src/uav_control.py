@@ -37,6 +37,7 @@ class UAV:
 		self.TOL_state = None # prep, move, finish
 		self.land_index = 0 # to be set by game master at landing time
 		self.alt_sorted = alt_standard
+		self.land_final = False
 
 		path_base = "/uav"+str(uav_id)+"/mavros/"
 
@@ -110,7 +111,11 @@ class UAV:
 				rospy.loginfo("Takeoff complete")
 				self.TOL = None
 				self.TOL_state = None
-				self.setMode("OFFBOARD")
+
+				# maybe this will work when all drones are possessed
+				# while self.state.mode != "OFFBOARD":
+				#	self.setMode("OFFBOARD")
+				#	rospy.sleep(0.5)
 
 		elif self.TOL == "landing":
 			if self.TOL_state == "prep":
@@ -120,10 +125,14 @@ class UAV:
 				rospy.loginfo("Landing half")
 				self.pub_admin_res.publish(std_msgs.msg.String("/uav"+str(self.uav_id)+" LANDING MOVE"))
 			elif self.TOL_state == "finish":
-				rospy.loginfo("Landing complete")
-				self.pub_admin_res.publish(std_msgs.msg.String("/uav"+str(self.uav_id)+" LANDING FINISH"))
-				self.TOL = None
-				self.TOL_state = None
+				if self.land_final:
+					rospy.loginfo("Landing complete")
+					self.pub_admin_res.publish(std_msgs.msg.String("/uav"+str(self.uav_id)+" LANDING FINISH"))
+					self.TOL = None
+					self.TOL_state = None
+					self.land_final = False
+				else:
+					self.land_final = True
 	
 
 	def landIndexCb(self, indexMsg):
@@ -269,7 +278,16 @@ class UAV:
 				# land
 				self.wpClearService()
 				self.TOL_state = "finish"
+				## Waypoint mission doesn't work if first waypoint is to land
 				self.wpSetService(start_index=0, waypoints = [
+					mavros_msgs.msg.Waypoint(frame=0, command=16, is_current=True, autocontinue=True,
+											param1=0,		# hold time
+											param2=1,		# acceptance radius
+											param3=0, 		# pass radius
+											param4=0, 		# yaw
+											x_lat=landing_positions[self.uav_id][0], 	# latitude
+											y_long=landing_positions[self.uav_id][1], 	# longitude
+											z_alt=alt_min), 		  				# altitude
 					mavros_msgs.msg.Waypoint(frame=0, command=21, is_current=False, autocontinue=True,
 											param1=alt_ground-5, 	# abort alt
 											param2=0, 				# no precision landing
