@@ -4,7 +4,7 @@
 <arg name="fencePath" default = "$(find quadditch)/config/cage_5m_buffer_geofence.fen" />
 
 <group ns="$(arg uavID)">
-	<arg name="fcu_url" default="/dev/ttyUSB0" /> <!--"/dev/ttyACM0:57600"-->
+	<arg name="fcu_url" default="/dev/serial/by-id/usb-ArduPilot_CUAVv5_2F001C001851383137383335-if00" />
 	<arg name="gcs_url" default="" />
 	<arg name="tgt_system" default="1" />
 	<arg name="tgt_component" default="1" />
@@ -13,8 +13,8 @@
 	<arg name="respawn_mavros" default="false" />
 
 	<include file="$(find mavros)/launch/node.launch">
-		<arg name="pluginlists_yaml" value="$(find mavros)/launch/apm_pluginlists.yaml" />
-		<arg name="config_yaml" value="$(find quadditch)/config/apm_config.yaml" />
+		<arg name="pluginlists_yaml" value="$(find mavros)/launch/px4_pluginlists.yaml" />
+		<arg name="config_yaml" value="$(find quadditch)/config/px4_config.yaml" />
 
 		<arg name="fcu_url" value="$(arg fcu_url)" />
 		<arg name="gcs_url" value="$(arg gcs_url)" />
