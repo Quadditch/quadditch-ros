@@ -5,7 +5,7 @@
 
 <group ns="$(arg uavID)">
 	<arg name="fcu_url" default="/dev/serial/by-id/usb-ArduPilot_CUAVv5_2F001C001851383137383335-if00" />
-	<arg name="gcs_url" default="" />
+	<arg name="gcs_url" default="udp://192.168.7.20@192.168.7.4" />
 	<arg name="tgt_system" default="1" />
 	<arg name="tgt_component" default="1" />
 	<arg name="log_output" default="screen" />
