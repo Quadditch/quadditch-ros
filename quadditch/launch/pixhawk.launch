@@ -1,10 +1,15 @@
+<?xml version="1.0"?>
 <launch>
 
-<arg name="uavID" default="uav1" />
+<arg name="ID" default="0"/>
 <arg name="fencePath" default = "$(find quadditch)/config/cage_5m_buffer_geofence.fen" />
 
-<group ns="$(arg uavID)">
-	<arg name="fcu_url" default="/dev/serial/by-id/usb-ArduPilot_CUAVv5_2F001C001851383137383335-if00" />
+
+<group ns="$(eval 'uav'+str(ID))">
+
+        <node name="uav_control" pkg="quadditch" type="uav_control.py" output="screen"/>
+
+	<arg name="fcu_url" default="/dev/ttyS0:921600" />
 	<arg name="gcs_url" default="udp://192.168.7.20@192.168.7.4" />
 	<arg name="tgt_system" default="1" />
 	<arg name="tgt_component" default="1" />
