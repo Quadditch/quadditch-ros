@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+
+    <include file="$(find rosbridge_server)/launch/rosbridge_tcp.launch">
+        <arg name = "bson_only_mode" value="True" />
+    </include>
+
+    <node name="QGroundControl" pkg="quadditch" type="qgc.sh" output="log"/>
+</launch>

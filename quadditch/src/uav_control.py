@@ -11,23 +11,26 @@ import sys
 
 num_drones = 8
 
-alt_ground = 455.3 + 32.8 # need to add 32 offset for some reason
+#alt_ground = 455.3 + 32.8 # need to add 32 offset for some reason
+# ToDo Check this in the field
+alt_ground=455
 alt_standard = 9
-alt_min = 3
+alt_min = 10
 alt_layer_inc = 1.5
 alt_max = alt_min + alt_layer_inc*num_drones
 
-cage_origin = (37.2229, -80.432404, alt_ground)
-
-landing_positions = [(37.222895, -80.432404), 
-					(37.222977, -80.432511), 
-					(37.223041, -80.432635),
-					(37.223107, -80.432737)]
-
-starting_positions = [	(37.222859, -80.432452),
-						(37.222938, -80.432361), 
-						(37.223184, -80.432906),
-						(37.223252, -80.432790)]
+#cage_origin = (37.2229, -80.432404, alt_ground)
+cage_origin=(40.291227, -76.672903, alt_ground)
+#landing_positions = [(37.222895, -80.432404),
+#					(37.222977, -80.432511),
+#					(37.223041, -80.432635),
+#					(37.223107, -80.432737)]
+landing_positions = [(40.291227, -76.672903)]
+#starting_positions = [	(37.222859, -80.432452),
+#						(37.222938, -80.432361),
+#						(37.223184, -80.432906),
+#						(37.223252, -80.432790)]
+starting_positions = [(40.290889, -76.672399)]
 class UAV:
 	def __init__(self, uav_id):
 		self.ready = False
@@ -86,7 +89,8 @@ class UAV:
 			result = self.homeService(current_gps=False, yaw = 0, latitude = cage_origin[0], longitude = cage_origin[1], altitude = cage_origin[2])
 			if result.success:
 				self.home_set = True
-	
+
+
 	def globalCb(self, gpsMsg):
 		self.gpsPos = gpsMsg
 
@@ -133,12 +137,13 @@ class UAV:
 					self.land_final = False
 				else:
 					self.land_final = True
-	
+
 
 	def landIndexCb(self, indexMsg):
 		splits = indexMsg.data.split()
 		if splits[0] == "/uav"+str(self.uav_id):
 			self.land_index = int(splits[1])
+			rospy.loginfo("landing index: "+str(self.land_index))
 
 
 	def adminCb(self, cmdMsg):
@@ -146,7 +151,6 @@ class UAV:
 		if splits[0]=="TAKEOFF":
 			if splits[1]=="PREP":
 				self.TOL = "takeoff"
-				# Hard-code waypoint locations for each drone
 				rospy.loginfo("Arming")
 				while not self.state.armed:
 					self.setArmed(True)
@@ -163,7 +167,7 @@ class UAV:
 				self.setParam("MPC_XY_VEL_MAX", 50.0) 	# max horizontal velocity
 				self.setParam("MPC_Z_VEL_MAX_DN", 10)	# max descend vel
 				self.setParam("MPC_Z_VEL_MAX_UP", 10)	# max ascend vel
-				
+
 				self.setMode("AUTO.TAKEOFF")
 				# wait for takeoff to begin
 				while self.state.mode != "AUTO.TAKEOFF":
@@ -203,7 +207,7 @@ class UAV:
 											y_long=starting_positions[self.uav_id][1], 	# longitude
 											z_alt=alt_ground+alt_min+alt_layer_inc*(self.uav_id+1))				# altitude
 					])
-				
+
 
 			elif splits[1]=="FINISH":
 				# move to start position at standard altitude
@@ -220,11 +224,11 @@ class UAV:
 											z_alt=alt_ground+alt_standard)				# altitude
 					])
 
-		
+
 		elif splits[0]=="LANDING":
 			if splits[1]=="PREP":
 				self.TOL = "landing"
-				
+
 				# set fast parameters
 				self.setParam("MPC_ACC_HOR", 1) 		# horizontal acceleration for jerk limited trajectory mode
 				self.setParam("MPC_ACC_HOR_MAX", 1) 	# horizontal acceleration for line tracking mode
@@ -234,7 +238,8 @@ class UAV:
 
 				# ascend to sorted altitude
 				self.alt_sorted = alt_ground+alt_max-alt_layer_inc*self.land_index
-				if self.alt_sorted < alt_min:
+				rospy.loginfo("alt_sorted = "+str(self.alt_sorted))
+				if self.alt_sorted < alt_ground + alt_min:
 					rospy.loginfo("commanded landing altitude too low!!")
 					rospy.logfatal("commanded landing altitude too low!!")
 					sys.exit(-1)
@@ -249,13 +254,13 @@ class UAV:
 											param4=0, 		# yaw
 											x_lat=self.gpsPos.latitude,  	# latitude
 											y_long=self.gpsPos.longitude, 	# longitude
-											z_alt=self.alt_sorted) 				# altitude	
+											z_alt=self.alt_sorted) 				# altitude
 											])
 				while self.state.mode != "AUTO.MISSION":
 					self.setMode("AUTO.MISSION")
-					rospy.sleep(0.5)				
+					rospy.sleep(0.5)
 
-			
+
 			elif splits[1]=="MOVE":
 				# move and hold above landing position
 				self.wpClearService()
@@ -271,10 +276,11 @@ class UAV:
 											z_alt=self.alt_sorted) 		  				# altitude
 					])
 
-				
-				
 
 			elif splits[1]=="FINISH":
+				# set slow parameters for landing
+				self.setParam("MPC_TKO_SPEED", 1)
+				self.setParam("MPC_Z_VEL_MAX_DN", 0.8)	# max descend vel
 				# land
 				self.wpClearService()
 				self.TOL_state = "finish"
@@ -287,7 +293,7 @@ class UAV:
 											param4=0, 		# yaw
 											x_lat=landing_positions[self.uav_id][0], 	# latitude
 											y_long=landing_positions[self.uav_id][1], 	# longitude
-											z_alt=alt_min), 		  				# altitude
+											z_alt=alt_ground+alt_min), 		  				# altitude
 					mavros_msgs.msg.Waypoint(frame=0, command=21, is_current=False, autocontinue=True,
 											param1=alt_ground-5, 	# abort alt
 											param2=0, 				# no precision landing
@@ -297,8 +303,8 @@ class UAV:
 											y_long=landing_positions[self.uav_id][1], # longitude
 											z_alt=alt_ground, 						  # altitude
 											)])
-				
-				
+
+
 
 
 	def setMode(self, mode = "OFFBOARD"):
@@ -314,7 +320,7 @@ class UAV:
 			print("service set param call failed: %s"%e)
 
 	def setArmed(self, armed = True):
-		try:	
+		try:
 			self.armService(True)
 		except rospy.ServiceException as e:
 			print("Service arm call failed: %s"%e)
@@ -339,10 +345,10 @@ if __name__ == "__main__":
 
 		rospy.loginfo("ready to fly")
 
-		while not rospy.is_shutdown():		
+		while not rospy.is_shutdown():
 			uav.pub_alive.publish("/uav"+str(uav.uav_id))
 			rospy.sleep(0.5)
 			# set offboard mode
-			
+
 	except rospy.exceptions.ROSInterruptException:
 		sys.exit(0)
