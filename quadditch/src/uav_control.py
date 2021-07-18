@@ -11,26 +11,39 @@ import sys
 
 num_drones = 8
 
-#alt_ground = 455.3 + 32.8 # need to add 32 offset for some reason
+alt_ground = 455.3 + 32.8 # need to add 32 offset for some reason
 # ToDo Check this in the field
-alt_ground=455
+#alt_ground=455
 alt_standard = 9
 alt_min = 10
 alt_layer_inc = 1.5
 alt_max = alt_min + alt_layer_inc*num_drones
 
-#cage_origin = (37.2229, -80.432404, alt_ground)
-cage_origin=(40.291227, -76.672903, alt_ground)
-#landing_positions = [(37.222895, -80.432404),
-#					(37.222977, -80.432511),
-#					(37.223041, -80.432635),
-#					(37.223107, -80.432737)]
-landing_positions = [(40.291227, -76.672903)]
-#starting_positions = [	(37.222859, -80.432452),
-#						(37.222938, -80.432361),
-#						(37.223184, -80.432906),
-#						(37.223252, -80.432790)]
-starting_positions = [(40.290889, -76.672399)]
+location = "swatara"
+
+if location == "cage":
+	cage_origin = (37.2229, -80.432404, alt_ground)
+	landing_positions = [(37.222895, -80.432404),
+						(37.222977, -80.432511),
+						(37.223041, -80.432635),
+						(37.223107, -80.432737)]
+	starting_positions = [	(37.222859, -80.432452),
+							(37.222938, -80.432361),
+							(37.223184, -80.432906),
+							(37.223252, -80.432790)]
+
+elif location == "swatara":
+	cage_origin=(40.291227, -76.672903, alt_ground)
+	landing_positions = [(40.291227, -76.672903),
+	                     (40.201227, -76.672903),
+	                     (40.211227, -76.672903),
+	                     (40.221227, -76.672903) ]
+	starting_positions = [(40.200889, -76.672399),
+						  (40.210889, -76.672399),
+						  (40.220889, -76.672399),
+						  (40.290889, -76.672399)]
+
+
 class UAV:
 	def __init__(self, uav_id):
 		self.ready = False
