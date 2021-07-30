@@ -28,6 +28,7 @@ echo "Network ping at $(date +%Y-%m-%dT%T)"
 
 ping_device access-point-1
 ping_device access-point-2
+ping_device ground-station
 ping_device rosmaster
 
 printf "%-55s" "Checking if ROS master is up..."
