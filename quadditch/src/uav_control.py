@@ -19,7 +19,8 @@ alt_min = 10
 alt_layer_inc = 1.5
 alt_max = alt_min + alt_layer_inc*num_drones
 
-location = "swatara"
+#location = "swatara"
+location = "cage"
 
 if location == "cage":
 	cage_origin = (37.2229, -80.432404, alt_ground)
@@ -54,6 +55,8 @@ class UAV:
 		self.land_index = 0 # to be set by game master at landing time
 		self.alt_sorted = alt_standard
 		self.land_final = False
+		self.possessed = False
+		self.vel_ts_last = rospy.Time.now()
 
 		path_base = "/uav"+str(uav_id)+"/mavros/"
 
@@ -65,6 +68,7 @@ class UAV:
 		rospy.Subscriber("/admin/cmd", std_msgs.msg.String, self.adminCb)
 		rospy.Subscriber("/admin/land_idx", std_msgs.msg.String, self.landIndexCb)
 		rospy.Subscriber(path_base + "mission/reached", mavros_msgs.msg.WaypointReached, self.wpCb)
+		rospy.Subscriber(path_base +  "setpoint_velocity/cmd_vel_unstamped", geometry_msgs.msg.Twist, self.velCb)
 
 		rospy.wait_for_service(path_base + "cmd/land")
 		rospy.wait_for_service(path_base + "cmd/takeoff")
@@ -107,6 +111,11 @@ class UAV:
 	def globalCb(self, gpsMsg):
 		self.gpsPos = gpsMsg
 
+	def velCb(self, velMsg):
+		vel_ts_now = rospy.Time.now()
+		self.possessed = vel_ts_now - self.vel_ts_last <= rospy.Duration(1)
+		self.vel_ts_last = vel_ts_now
+
 
 	def wpCb(self, wpMsg):
 		if self.TOL == "takeoff":
@@ -129,10 +138,9 @@ class UAV:
 				self.TOL = None
 				self.TOL_state = None
 
-				# maybe this will work when all drones are possessed
-				# while self.state.mode != "OFFBOARD":
-				#	self.setMode("OFFBOARD")
-				#	rospy.sleep(0.5)
+				while self.state.mode != "OFFBOARD":
+				    self.setMode("OFFBOARD")
+				    rospy.sleep(0.5)
 
 		elif self.TOL == "landing":
 			if self.TOL_state == "prep":
@@ -160,6 +168,9 @@ class UAV:
 
 
 	def adminCb(self, cmdMsg):
+		if not self.possessed:
+			return
+
 		splits = cmdMsg.data.split()
 		if splits[0]=="TAKEOFF":
 			if splits[1]=="PREP":
@@ -206,20 +217,21 @@ class UAV:
 					self.setMode("AUTO.MISSION")
 					rospy.sleep(0.5)
 
-			elif splits[1]=="MOVE":
-				# move to game start position, sorted altitude
-				self.wpClearService()
-				self.TOL_state = "move"
-				self.wpSetService(start_index=0, waypoints = [
-					mavros_msgs.msg.Waypoint(frame=0, command=16, is_current=True, autocontinue=True,
-											param1=0,		# hold time
-											param2=1,		# acceptance radius
-											param3=0, 		# pass radius
-											param4=0, 		# yaw
-											x_lat=starting_positions[self.uav_id][0],	# latitude
-											y_long=starting_positions[self.uav_id][1], 	# longitude
-											z_alt=alt_ground+alt_min+alt_layer_inc*(self.uav_id+1))				# altitude
-					])
+			elif splits[1]=="MOVE": 
+					# move to game start position, sorted altitude
+					self.wpClearService()
+					self.TOL_state = "move"
+					self.wpSetService(start_index=0, waypoints = [
+						mavros_msgs.msg.Waypoint(frame=0, command=16, is_current=True, autocontinue=True,
+												param1=0,		# hold time
+												param2=1,		# acceptance radius
+												param3=0, 		# pass radius
+												param4=0, 		# yaw
+												x_lat=starting_positions[self.uav_id][0],	# latitude
+												y_long=starting_positions[self.uav_id][1], 	# longitude
+												z_alt=alt_ground+alt_min+alt_layer_inc*(self.uav_id+1))				# altitude
+						])
+
 
 
 			elif splits[1]=="FINISH":
