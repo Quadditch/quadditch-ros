@@ -1,0 +1,29 @@
+127.0.0.1	localhost
+127.0.1.1	quadditch-VirtualBox
+
+192.168.0.108	dumbledore
+192.168.0.131	slytherin
+192.168.0.120	gryffindor
+
+192.168.0.195	rosmaster
+192.168.0.108	ground-station
+192.168.0.176	access-point-1
+192.168.0.184	access-point-2
+
+192.168.0.140	uav0
+192.168.0.141	uav1
+192.168.0.142	uav2
+192.168.0.143	uav3
+192.168.0.144	uav4
+192.168.0.145	uav5
+192.168.0.146	uav6
+192.168.0.147	uav7
+
+
+
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters

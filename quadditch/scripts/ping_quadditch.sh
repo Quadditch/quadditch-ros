@@ -31,6 +31,10 @@ ping_device access-point-2
 ping_device ground-station
 ping_device rosmaster
 
+ping_device dumbledore
+ping_device slytherin
+ping_device gryffindor
+
 printf "%-55s" "Checking if ROS master is up..."
 nc -zvw10 rosmaster 11311 >/dev/null 2>/dev/null
 if [[ 0 -eq $? ]]
