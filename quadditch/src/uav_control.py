@@ -11,11 +11,10 @@ import sys
 
 num_drones = 8
 
-alt_ground = 455.3 + 32.8 # need to add 32 offset for some reason
-# ToDo Check this in the field
-#alt_ground=455
-alt_standard = 9
-alt_min = 10
+#alt_ground = 455.3 + 32.8 # need to add 32 offset for some reason
+alt_ground = 455.3
+alt_standard = 8
+alt_min = 5
 alt_layer_inc = 1.5
 alt_max = alt_min + alt_layer_inc*num_drones
 
@@ -23,7 +22,7 @@ alt_max = alt_min + alt_layer_inc*num_drones
 location = "cage"
 
 if location == "cage":
-	cage_origin = (37.2229, -80.432404, alt_ground)
+	cage_origin = (37.22305889702098, -80.43259539019778, alt_ground)
 	landing_positions = [(37.222895, -80.432404),
 						(37.222977, -80.432511),
 						(37.223041, -80.432635),
@@ -103,7 +102,7 @@ class UAV:
 
 	def homeCb(self, homeMsg):
 		if not self.home_set:
-			result = self.homeService(current_gps=False, yaw = 0, latitude = cage_origin[0], longitude = cage_origin[1], altitude = cage_origin[2])
+			result = self.homeService(current_gps=False, yaw = 90, latitude = cage_origin[0], longitude = cage_origin[1], altitude = cage_origin[2])
 			if result.success:
 				self.home_set = True
 
