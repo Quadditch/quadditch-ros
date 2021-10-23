@@ -11,9 +11,8 @@ import sys
 
 num_drones = 8
 
-alt_ground = 455.3 + 32.8 # need to add 32 offset for some reason
-# ToDo Check this in the field
-#alt_ground=455
+alt_ground = 587 + 32.8  # need to add offset for some reason
+
 alt_standard = 9
 alt_min = 10
 alt_layer_inc = 1.5
@@ -131,7 +130,7 @@ class UAV:
 				self.setParam("MPC_ACC_HOR", 0.01) 		# horizontal acceleration for jerk limited trajectory mode
 				self.setParam("MPC_ACC_HOR_MAX", 0.01) 	# horizontal acceleration for line tracking mode
 				self.setParam("MPC_XY_VEL_MAX", 5.0) 	# max horizontal velocity
-				self.setParam("MPC_Z_VEL_MAX_DN", 0.8)	# max descend vel
+				self.setParam("MPC_Z_VEL_MAX_DN", 1.0)	# max descend vel
 				self.setParam("MPC_Z_VEL_MAX_UP", 1.0)	# max ascend vel
 				self.pub_admin_res.publish(std_msgs.msg.String("/uav"+str(self.uav_id)+" TAKEOFF FINISH"))
 				rospy.loginfo("Takeoff complete")
@@ -168,8 +167,11 @@ class UAV:
 
 
 	def adminCb(self, cmdMsg):
-		if not self.possessed:
-			return
+                print("Admin message received!")
+
+                ## ToDo drone doesn't know it's possessed because it doesn't receive vel cmd because game doesn't allow control on ground
+		#if not self.possessed:
+		#	return
 
 		splits = cmdMsg.data.split()
 		if splits[0]=="TAKEOFF":
@@ -305,7 +307,7 @@ class UAV:
 			elif splits[1]=="FINISH":
 				# set slow parameters for landing
 				self.setParam("MPC_TKO_SPEED", 1)
-				self.setParam("MPC_Z_VEL_MAX_DN", 0.8)	# max descend vel
+				self.setParam("MPC_Z_VEL_MAX_DN", 1.0)	# max descend vel
 				# land
 				self.wpClearService()
 				self.TOL_state = "finish"
