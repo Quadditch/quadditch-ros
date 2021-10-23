@@ -25,14 +25,17 @@ location = "cage"
 
 if location == "cage":
 	cage_origin = (37.22305889702098, -80.43259539019778, alt_ground)
-	landing_positions = [(37.222895, -80.432404),
-						(37.222977, -80.432511),
-						(37.223041, -80.432635),
-						(37.223107, -80.432737)]
-	starting_positions = [	(37.222859, -80.432452),
-							(37.222938, -80.432361),
-							(37.223184, -80.432906),
-							(37.223252, -80.432790)]
+#	landing_positions = [(37.222895, -80.432404),
+#						(37.222977, -80.432511),
+#						(37.223041, -80.432635),
+#						(37.223107, -80.432737)]
+#	starting_positions = [	(37.222859, -80.432452),
+#							(37.222938, -80.432361),
+#							(37.223184, -80.432906),
+#							(37.223252, -80.432790)]
+
+	landing_positions = [(37.22305889702098, -80.43259539019778)]
+	starting_positions = [(37.22305889702098, -80.43259539019778)]
 
 elif location == "swatara":
 	cage_origin=(40.291227, -76.672903, alt_ground)
@@ -171,9 +174,8 @@ class UAV:
 	def adminCb(self, cmdMsg):
                 print("Admin message received!")
 
-                ## ToDo drone doesn't know it's possessed because it doesn't receive vel cmd because game doesn't allow control on ground
-		#if not self.possessed:
-		#	return
+		if not self.possessed:
+			return
 
 		splits = cmdMsg.data.split()
 		if splits[0]=="TAKEOFF":
