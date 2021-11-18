@@ -11,7 +11,7 @@ import sys
 
 #ToDo fix tabs and spaces
 
-num_drones = 8
+num_drones = 2
 
 alt_ground = 587 + 32.8  # need to add offset for some reason
 alt_standard = 8
