@@ -11,7 +11,7 @@ import sys
 
 #ToDo fix tabs and spaces
 
-num_drones = 2
+num_drones = 4
 
 alt_ground = 587 + 32.8  # need to add offset for some reason
 alt_standard = 8
@@ -25,17 +25,21 @@ location = "cage"
 
 if location == "cage":
 	cage_origin = (37.22305889702098, -80.43259539019778, alt_ground)
-#	landing_positions = [(37.222895, -80.432404),
-#						(37.222977, -80.432511),
-#						(37.223041, -80.432635),
-#						(37.223107, -80.432737)]
+	landing_positions = [(37.22309079590038, -80.4328058738124),
+						(37.22316234536629, -80.43269590324343),
+						(37.22302245007853, -80.43248534983698),
+						(37.222950900479894, -80.43252826518096)]
+
+	starting_positions = landing_positions
+
 #	starting_positions = [	(37.222859, -80.432452),
 #							(37.222938, -80.432361),
 #							(37.223184, -80.432906),
 #							(37.223252, -80.432790)]
 
-	landing_positions = [(37.22305889702098, -80.43259539019778)]
-	starting_positions = [(37.22305889702098, -80.43259539019778)]
+# center point for easy demo
+#	landing_positions = [(37.22305889702098, -80.43259539019778)]
+#	starting_positions = [(37.22305889702098, -80.43259539019778)]
 
 elif location == "swatara":
 	cage_origin=(40.291227, -76.672903, alt_ground)
