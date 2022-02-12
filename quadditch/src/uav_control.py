@@ -97,10 +97,10 @@ class UAV:
 		self.seqId = 0
 		r = rospy.Rate(5)
 
-		while not self.home_set:
+		while not self.home_set and not rospy.is_shutdown():
 			r.sleep()
 
-		while self.state.system_status != 3:
+		while self.state.system_status != 3 and not rospy.is_shutdown():
 			r.sleep() # wait for drone to be in MAV_STATE_STANDBY or MAV_STATE_ACTIVE
 
 		self.ready = True
