@@ -150,7 +150,7 @@ class UAV:
 				    self.setMode("OFFBOARD")
 				    rospy.sleep(0.5)
 
-		elif self.TOL == "landing":
+		elif self.TOL == "land:
 			if self.TOL_state == "prep":
 				self.pub_admin_res.publish(std_msgs.msg.String("/uav"+str(self.uav_id)+" LANDING PREP"))
 				rospy.loginfo("Landing prep")
@@ -260,9 +260,9 @@ class UAV:
 					])
 
 
-		elif splits[0]=="LANDING":
+		elif splits[0]=="LAND":
 			if splits[1]=="PREP":
-				self.TOL = "landing"
+				self.TOL = "land"
 
 				# set fast parameters
 				self.setParam("MPC_ACC_HOR", 1) 		# horizontal acceleration for jerk limited trajectory mode
