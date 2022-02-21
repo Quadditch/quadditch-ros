@@ -2,6 +2,7 @@
 <launch>
 
 <arg name="ID" default="0"/>
+<arg name="MAV_ID" default="0"/>
 <!-- <arg name="fencePath" default = "$(find quadditch)/config/cage_5m_buffer_geofence.fen" /> -->
 
 
@@ -13,7 +14,7 @@
 	<!--<arg name="gcs_url" default="udp://192.168.0.14$(arg ID)@192.168.0.108" />-->
 	<arg name="gcs_url" default=""/>
 	<!-- tgt_system needs to be the same as the MAV_SYS_ID of connected PX4 -->
-	<arg name="tgt_system" default="1" />
+	<arg name="tgt_system" default="$(eval str(MAV_ID))" />
 	<arg name="tgt_component" default="1" />
 	<arg name="log_output" default="screen" />
 	<arg name="fcu_protocol" default="v2.0" />
