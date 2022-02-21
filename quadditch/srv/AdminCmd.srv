@@ -1,0 +1,5 @@
+int64 uav_id
+string command
+string intermediate
+---
+bool ack
