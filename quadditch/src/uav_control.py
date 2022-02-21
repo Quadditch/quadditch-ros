@@ -150,7 +150,7 @@ class UAV:
 				    self.setMode("OFFBOARD")
 				    rospy.sleep(0.5)
 
-		elif self.TOL == "land:
+		elif self.TOL == "land":
 			if self.TOL_state == "prep":
 				self.pub_admin_res.publish(std_msgs.msg.String("/uav"+str(self.uav_id)+" LANDING PREP"))
 				rospy.loginfo("Landing prep")
