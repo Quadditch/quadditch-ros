@@ -177,7 +177,7 @@ class UAV:
 
 
     def adminCmdSrvCb(self, req):
-        print("UAV"+str(self.uav_id)+" admin service received: "+req.command+" "+req.intermediate)
+        rospy.loginfo("UAV%d admin service received: %s %s", self.uav_id, req.command, req.intermediate)
 
         if not self.possessed:
             return
