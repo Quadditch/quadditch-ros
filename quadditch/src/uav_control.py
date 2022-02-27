@@ -74,7 +74,6 @@ class UAV:
         rospy.Subscriber(path_base + "home_position/home", mavros_msgs.msg.HomePosition, self.homeCb)
         self.gpsPos = sensor_msgs.msg.NavSatFix()
         rospy.Subscriber(path_base + "global_position/global", sensor_msgs.msg.NavSatFix, self.globalCb)
-        rospy.Subscriber("/admin/cmd", std_msgs.msg.String, self.adminCb)
         rospy.Subscriber("/admin/land_idx", std_msgs.msg.String, self.landIndexCb)
         rospy.Subscriber(path_base + "mission/reached", mavros_msgs.msg.WaypointReached, self.wpCb)
         rospy.Subscriber(path_base +  "setpoint_velocity/cmd_vel_unstamped", geometry_msgs.msg.Twist, self.velCb)
@@ -84,16 +83,16 @@ class UAV:
         rospy.wait_for_service(path_base + "cmd/arming")
         rospy.wait_for_service(path_base + "set_mode")
         rospy.wait_for_service(path_base + "param/set")
-        self.landService       = rospy.ServiceProxy(path_base + "cmd/land",         mavros_msgs.srv.CommandTOL)
+        self.landService       = rospy.ServiceProxy(path_base + "cmd/land",      mavros_msgs.srv.CommandTOL)
         self.takeoffService    = rospy.ServiceProxy(path_base + "cmd/takeoff",   mavros_msgs.srv.CommandTOL)
         self.armService        = rospy.ServiceProxy(path_base + "cmd/arming",    mavros_msgs.srv.CommandBool)
         self.homeService       = rospy.ServiceProxy(path_base + "cmd/set_home",  mavros_msgs.srv.CommandHome)
-        self.flightModeService = rospy.ServiceProxy(path_base + "set_mode",         mavros_msgs.srv.SetMode)
+        self.flightModeService = rospy.ServiceProxy(path_base + "set_mode",      mavros_msgs.srv.SetMode)
         self.paramSetService   = rospy.ServiceProxy(path_base + "param/set",     mavros_msgs.srv.ParamSet)
         self.wpClearService    = rospy.ServiceProxy(path_base + "mission/clear", mavros_msgs.srv.WaypointClear)
         self.wpSetService      = rospy.ServiceProxy(path_base + "mission/push",  mavros_msgs.srv.WaypointPush)
 
-        self.adminCmdService = rospy.Service("/uav"+str(uav_id)+"/adminService", quadditch.srv.AdminCmd, self.adminCmdCb)
+        self.adminCmdService = rospy.Service("/uav"+str(uav_id)+"/adminService", quadditch.srv.AdminCmd, self.adminCmdSrvCb)
 
         self.pub_alive      = rospy.Publisher("/alive", std_msgs.msg.String, queue_size=10)
         self.pub_admin_res  = rospy.Publisher("/admin/result", std_msgs.msg.String, queue_size=10)
@@ -177,19 +176,14 @@ class UAV:
             rospy.loginfo("landing index: "+str(self.land_index))
 
 
-    def adminCmdCb(self, req):
-        print("SERVICE ACTIVATED")
-        return quadditch.srv.AdminCmdResponse(True)
-
-    def adminCb(self, cmdMsg):
-        print("Admin message received!")
+    def adminCmdSrvCb(self, req):
+        print("UAV"+str(self.uav_id)+" admin service received: "+req.command+" "+req.intermediate)
 
         if not self.possessed:
             return
 
-        splits = cmdMsg.data.split()
-        if splits[0]=="TAKEOFF":
-            if splits[1]=="PREP":
+        if req.command=="TAKEOFF":
+            if req.intermediate=="PREP":
                 self.TOL = "takeoff"
                 rospy.loginfo("Arming")
                 while not self.state.armed:
@@ -233,7 +227,7 @@ class UAV:
                     self.setMode("AUTO.MISSION")
                     rospy.sleep(0.5)
 
-            elif splits[1]=="MOVE": 
+            elif req.intermediate=="MOVE":
                     # move to game start position, sorted altitude
                     self.wpClearService()
                     self.TOL_state = "move"
@@ -250,7 +244,7 @@ class UAV:
 
 
 
-            elif splits[1]=="FINISH":
+            elif req.intermediate=="FINISH":
                 # move to start position at standard altitude
                 self.wpClearService()
                 self.TOL_state = "finish"
@@ -266,8 +260,8 @@ class UAV:
                     ])
 
 
-        elif splits[0]=="LAND":
-            if splits[1]=="PREP":
+        elif req.command=="LAND":
+            if req.intermediate=="PREP":
                 self.TOL = "land"
 
                 # set fast parameters
@@ -302,7 +296,7 @@ class UAV:
                     rospy.sleep(0.5)
 
 
-            elif splits[1]=="MOVE":
+            elif req.intermediate=="MOVE":
                 # move and hold above landing position
                 self.wpClearService()
                 self.TOL_state = "move"
@@ -318,7 +312,7 @@ class UAV:
                     ])
 
 
-            elif splits[1]=="FINISH":
+            elif req.intermediate=="FINISH":
                 # set slow parameters for landing
                 self.setParam("MPC_TKO_SPEED", 1)
                 self.setParam("MPC_Z_VEL_MAX_DN", 1.0)    # max descend vel
@@ -344,6 +338,8 @@ class UAV:
                                             y_long=landing_positions[self.uav_id][1], # longitude
                                             z_alt=alt_ground,                           # altitude
                                             )])
+
+        return quadditch.srv.AdminCmdResponse(True)
 
 
 
