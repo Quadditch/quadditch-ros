@@ -93,7 +93,7 @@ class UAV:
         self.wpClearService    = rospy.ServiceProxy(path_base + "mission/clear", mavros_msgs.srv.WaypointClear)
         self.wpSetService      = rospy.ServiceProxy(path_base + "mission/push",  mavros_msgs.srv.WaypointPush)
 
-        self.adminCmdService = rospy.Service(path_base + "adminService", quadditch.srv.AdminCmd, self.adminCmdCb)
+        self.adminCmdService = rospy.Service("/uav"+str(uav_id)+"/adminService", quadditch.srv.AdminCmd, self.adminCmdCb)
 
         self.pub_alive      = rospy.Publisher("/alive", std_msgs.msg.String, queue_size=10)
         self.pub_admin_res  = rospy.Publisher("/admin/result", std_msgs.msg.String, queue_size=10)
