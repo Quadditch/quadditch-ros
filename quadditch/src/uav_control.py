@@ -61,6 +61,7 @@ class UAV:
         self.uav_id = uav_id
         self.TOL = None # takeoff or landing mode
         self.TOL_state = None # prep, move, finish
+        self.cmd_last = ""
         self.land_index = 0 # to be set by game master at landing time
         self.alt_sorted = alt_standard
         self.land_final = False
@@ -177,10 +178,16 @@ class UAV:
 
 
     def adminCmdSrvCb(self, req):
-        rospy.loginfo("UAV%d admin service received: %s %s", self.uav_id, req.command, req.intermediate)
+        cmd = req.command+req.intermediate
 
-        if not self.possessed:
-            return
+        if not self.possessed or cmd == self.cmd_last:
+            rospy.loginfo("UAV%d admin service received, ignoring", self.uav_id)
+            return quadditch.srv.AdminCmdResponse(True)
+
+        rospy.loginfo("UAV%d admin service received: %s %s", self.uav_id, req.command, req.intermediate)
+        self.cmd_last = cmd
+
+
 
         if req.command=="TAKEOFF":
             if req.intermediate=="PREP":
