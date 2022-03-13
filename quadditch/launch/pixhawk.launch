@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 <launch>
-
-<arg name="ID" default="0"/>
+	
+<arg name="HOSTNAME" default="uav0"/> <!-- must be uav followed by a number -->
 <arg name="MAV_ID" default="0"/>
 <!-- <arg name="fencePath" default = "$(find quadditch)/config/cage_5m_buffer_geofence.fen" /> -->
 
 
-<group ns="$(eval 'uav'+str(ID))">
+<group ns="$(eval HOSTNAME)">
 
         <node name="uav_control" pkg="quadditch" type="uav_control.py" output="screen"/>
 
