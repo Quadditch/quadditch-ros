@@ -70,6 +70,8 @@ class UAV:
 
         path_base = "/uav"+str(uav_id)+"/mavros/"
 
+        self.homeService = None
+
         self.state = mavros_msgs.msg.State()
         rospy.Subscriber(path_base + "state", mavros_msgs.msg.State, self.stateCb)
         rospy.Subscriber(path_base + "home_position/home", mavros_msgs.msg.HomePosition, self.homeCb)
@@ -113,6 +115,8 @@ class UAV:
         self.state = stateMsg
 
     def homeCb(self, homeMsg):
+        if self.homeService is None:
+            return
         if not self.home_set:
             result = self.homeService(current_gps=False, yaw = 90, latitude = cage_origin[0], longitude = cage_origin[1], altitude = cage_origin[2])
             if result.success:
