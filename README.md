@@ -15,7 +15,6 @@ Have Pi disconnected from power supply and pixhawk at startup. I think there is 
 
 ## Tasks
 - [ ] Emergency landing button
-- [ ] Easier startup procedure - add delay modules to turn things on at correct times
 - [ ] Standardize and freeze computer setup
   - [ ] use offline account instead of Wade's
   - [ ] make sure all Manycam are up-to-date with same settings
@@ -23,15 +22,8 @@ Have Pi disconnected from power supply and pixhawk at startup. I think there is 
 - [ ] Use something like Ansible to standardize systems and control
   - [ ] for Pis and Laptops
   - [ ] Allow us to git pull and rebuild on all machines simultaneously
-- [ ] get RTK fixed working consistently
-  - [ ] Better coax?
-  - [ ] tripod adapter
-- [ ] 3d printed casings
-  - [ ] RTK gps ground station
-  - [ ] RFD900 ground station
-- [ ] telemetry radio better mount in drone
-- [ ] VTX doesn't fit properly in drone housing
-- [ ] RTK GPS rigid mount
-- [ ] database of calibration parameters for each drone
-- [ ] finish building drones
-- [ ] break down old prototypes to recycle components
+- [ ] Fix launch procedure
+  - [ ]  Use ROSLaunch instead of shell script
+  - [ ]  get MAV_SYS_ID from drone before starting ROS (use this to set UAV ID)
+  - [ ]  make hostnames independent of UAV ID (Harry Potter names?)
+
