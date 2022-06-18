@@ -102,8 +102,8 @@ class UAV:
         self.seqId = 0
         r = rospy.Rate(5)
 
-        while not self.home_set and not rospy.is_shutdown():
-            r.sleep()
+        # while not self.home_set and not rospy.is_shutdown():
+        #     r.sleep()
 
         while self.state.system_status != 3 and not rospy.is_shutdown():
             r.sleep() # wait for drone to be in MAV_STATE_STANDBY or MAV_STATE_ACTIVE
@@ -376,27 +376,34 @@ class UAV:
     def shutdownCb(self):
         sys.exit(0)
 
+
 if __name__ == "__main__":
-    try:
-        rospy.init_node("uav_control", anonymous=True)
-        uavID = int(rospy.get_namespace()[-2])
-        uav = UAV(uavID)
-        rospy.on_shutdown(uav.shutdownCb)
 
-        while not uav.ready:
-            rospy.sleep(1)
-        rospy.loginfo("UAV starting")
+    rospy.init_node("uav_control", anonymous=True)
+    uavID = int(rospy.get_namespace()[-2])
+    uav = UAV(uavID)
+    rospy.on_shutdown(uav.shutdownCb)
 
-        rospy.loginfo("Waiting for home position estimate")
-        while not uav.home_set:
-            rospy.sleep(1)
+    rospy.logwarn("NOT WAITING FOR READY STATE. This may have negative consequences later!!! - Wade")
+    rospy.logwarn("NOT WAITING FOR READY STATE. This may have negative consequences later!!! - Wade")
+    rospy.logwarn("NOT WAITING FOR READY STATE. This may have negative consequences later!!! - Wade")
+    rospy.logwarn("NOT WAITING FOR READY STATE. This may have negative consequences later!!! - Wade")
+    rospy.logwarn("NOT WAITING FOR READY STATE. This may have negative consequences later!!! - Wade")
+    rospy.logwarn("NOT WAITING FOR READY STATE. This may have negative consequences later!!! - Wade")
+    rospy.logwarn("NOT WAITING FOR READY STATE. This may have negative consequences later!!! - Wade")
+    rospy.logwarn("NOT WAITING FOR READY STATE. This may have negative consequences later!!! - Wade")
+    # while not uav.ready:
+    #     rospy.sleep(1)
+    # rospy.loginfo("UAV starting")
 
-        rospy.loginfo("ready to fly")
+    # rospy.loginfo("Waiting for home position estimate")
+    # while not uav.home_set:
+    #     rospy.sleep(1)
 
-        while not rospy.is_shutdown():
-            uav.pub_alive.publish("/uav"+str(uav.uav_id))
-            rospy.sleep(0.5)
-            # set offboard mode
+    rospy.loginfo("ready to fly")
 
-    except rospy.exceptions.ROSInterruptException:
-        sys.exit(0)
+    while not rospy.is_shutdown():
+        uav.pub_alive.publish("/uav"+str(uav.uav_id))
+        rospy.sleep(0.5)
+        # set offboard mode
+
