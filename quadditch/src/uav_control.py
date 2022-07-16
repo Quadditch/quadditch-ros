@@ -83,14 +83,9 @@ class UAV:
 
         self.pub_alive     = rospy.Publisher("/alive", std_msgs.msg.String, queue_size=10)
         self.pub_admin_res = rospy.Publisher("/admin/result", std_msgs.msg.String, queue_size=10)
-        self.seqId = 0
-        r = rospy.Rate(5)
-
-        # while not self.home_set and not rospy.is_shutdown():
-        #     r.sleep()
 
         while self.state.system_status != 3 and not rospy.is_shutdown():
-            r.sleep() # wait for drone to be in MAV_STATE_STANDBY or MAV_STATE_ACTIVE
+            rospy.Rate(5).sleep() # wait for drone to be in MAV_STATE_STANDBY or MAV_STATE_ACTIVE
 
         self.ready = True
         rospy.loginfo("Ready.")
@@ -137,6 +132,7 @@ class UAV:
         # alias for publishing a name-qualified landing status
         # message to /admin/result
         def publish_landing_state_msg(text):
+            rospy.loginfo("Publishing landing state message: {}".format(text))
             msg_text = "/uav{} {}".format(self.uav_id, text)
             self.pub_admin_res.publish(std_msgs.msg.String(msg_text))
 
@@ -144,12 +140,10 @@ class UAV:
         if self.takeoff_or_landing == "takeoff":
 
             if self.takeoff_or_landing_state == "prep":
-                self.pub_admin_res.publish(std_msgs.msg.String("/uav"+str(self.uav_id)+" TAKEOFF PREP"))
-                rospy.loginfo("Takeoff prep")
+                publish_landing_state_msg("TAKEOFF PREP")
 
             elif self.takeoff_or_landing_state == "move":
-                self.pub_admin_res.publish(std_msgs.msg.String("/uav"+str(self.uav_id)+" TAKEOFF MOVE"))
-                rospy.loginfo("Takeoff half")
+                publish_landing_state_msg("TAKEOFF MOVE")
 
             elif self.takeoff_or_landing_state == "finish":
                 # set slow parameters for gameplay
@@ -161,7 +155,6 @@ class UAV:
                 self.setParam("MPC_Z_VEL_MAX_UP", 1.0)    # max ascend vel
 
                 publish_landing_state_msg("TAKEOFF FINISH")
-                rospy.loginfo("Takeoff complete")
 
                 self.takeoff_or_landing = None
                 self.takeoff_or_landing_state = None
@@ -174,15 +167,12 @@ class UAV:
 
             if self.takeoff_or_landing_state == "prep":
                 publish_landing_state_msg("LANDING PREP")
-                rospy.loginfo("Landing prep")
 
             elif self.takeoff_or_landing_state == "move":
                 publish_landing_state_msg("LANDING MOVE")
-                rospy.loginfo("Landing half")
 
             elif self.takeoff_or_landing_state == "finish":
                 if self.land_final:
-                    rospy.loginfo("Landing complete")
                     publish_landing_state_msg("LANDING FINISH")
                     self.takeoff_or_landing = None
                     self.takeoff_or_landing_state = None
@@ -206,12 +196,14 @@ class UAV:
         cmd = req.command + req.intermediate
 
         if not self.possessed:
-            rospy.loginfo("UAV{}: not possessed. Ignoring command.".format(self.uav_id))
+            rospy.logwarn("UAV{}: not possessed. Ignoring command.".format(self.uav_id))
             return quadditch.srv.AdminCmdResponse(True)
 
         if cmd == self.cmd_last:
-            rospy.loginfo("UAV{}: duplicate command received. Ignoring.".format(self.uav_id))
+            rospy.logwarn("UAV{}: duplicate command received. Ignoring.".format(self.uav_id))
             return quadditch.srv.AdminCmdResponse(True)
+
+        rospy.loginfo("Acting on this command.")
 
         self.cmd_last = cmd # storing this to ignore subsequent duplicate commands
 
@@ -310,7 +302,6 @@ class UAV:
                         z_alt=GROUND_ALTITUDE + STANDARD_HEIGHT_ABOVE_GROUND)
                     ])
 
-
         elif req.command == "LAND":
             if req.intermediate == "PREP":
                 self.takeoff_or_landing = "land"
@@ -400,9 +391,10 @@ class UAV:
                         z_alt=GROUND_ALTITUDE,
                     )])
 
+        else:
+            rospy.logwarn("Unrecognized command: {}".format(req))
+
         return quadditch.srv.AdminCmdResponse(True)
-
-
 
 
     def setMode(self, mode):
@@ -416,7 +408,8 @@ class UAV:
     def setParam(self, paramId, paramValue):
         rospy.loginfo("Setting param {} to {}".format(paramID, paramValue))
         try:
-            self.paramSetService(param_id = paramId, value = mavros_msgs.msg.ParamValue(integer=0, real=paramValue))
+            self.paramSetService(param_id=paramId,
+                value=mavros_msgs.msg.ParamValue(integer=0, real=paramValue))
         except rospy.ServiceException as e:
             rospy.logerr("service set param call failed: %s"%e)
 

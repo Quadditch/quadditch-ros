@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-	
+
 <arg name="HOSTNAME" default="uav0"/> <!-- must be uav followed by a number -->
 <arg name="MAV_ID" default="0"/>
 <!-- <arg name="fencePath" default = "$(find quadditch)/config/cage_5m_buffer_geofence.fen" /> -->
@@ -8,32 +8,32 @@
 
 <group ns="$(eval HOSTNAME)">
 
-        <node name="uav_control" pkg="quadditch" type="uav_control.py" output="screen"/>
+    <node name="uav_control" pkg="quadditch" type="uav_control.py" output="screen"/>
 
-	<arg name="fcu_url" default="/dev/ttyACM0:921600" />
-	<!--<arg name="gcs_url" default="udp://192.168.0.14$(arg ID)@192.168.0.108" />-->
-	<arg name="gcs_url" default=""/>
-	<!-- tgt_system needs to be the same as the MAV_SYS_ID of connected PX4 -->
-	<arg name="tgt_system" default="$(eval str(MAV_ID))" />
-	<arg name="tgt_component" default="1" />
-	<arg name="log_output" default="screen" />
-	<arg name="fcu_protocol" default="v2.0" />
-	<arg name="respawn_mavros" default="false" />
+    <arg name="fcu_url" default="/dev/ttyACM0:921600" />
+    <!--<arg name="gcs_url" default="udp://192.168.0.14$(arg ID)@192.168.0.108" />-->
+    <arg name="gcs_url" default=""/>
+    <!-- tgt_system needs to be the same as the MAV_SYS_ID of connected PX4 -->
+    <arg name="tgt_system" default="$(eval str(MAV_ID))" />
+    <arg name="tgt_component" default="1" />
+    <arg name="log_output" default="screen" />
+    <arg name="fcu_protocol" default="v2.0" />
+    <arg name="respawn_mavros" default="false" />
 
-	<include file="$(find mavros)/launch/node.launch">
-		<arg name="pluginlists_yaml" value="$(find mavros)/launch/px4_pluginlists.yaml" />
-		<arg name="config_yaml" value="$(find quadditch)/config/px4_config.yaml" />
+    <include file="$(find mavros)/launch/node.launch">
+        <arg name="pluginlists_yaml" value="$(find mavros)/launch/px4_pluginlists.yaml" />
+        <arg name="config_yaml" value="$(find quadditch)/config/px4_config.yaml" />
 
-		<arg name="fcu_url" value="$(arg fcu_url)" />
-		<arg name="gcs_url" value="$(arg gcs_url)" />
-		<arg name="tgt_system" value="$(arg tgt_system)" />
-		<arg name="tgt_component" value="$(arg tgt_component)" />
-		<arg name="log_output" value="$(arg log_output)" />
-		<arg name="fcu_protocol" value="$(arg fcu_protocol)" />
-		<arg name="respawn_mavros" default="$(arg respawn_mavros)" />
-	</include>
-	
-<!--	<rosparam param="fencePath" subst_value="True">$(arg fencePath)</rosparam> -->
+        <arg name="fcu_url" value="$(arg fcu_url)" />
+        <arg name="gcs_url" value="$(arg gcs_url)" />
+        <arg name="tgt_system" value="$(arg tgt_system)" />
+        <arg name="tgt_component" value="$(arg tgt_component)" />
+        <arg name="log_output" value="$(arg log_output)" />
+        <arg name="fcu_protocol" value="$(arg fcu_protocol)" />
+        <arg name="respawn_mavros" default="$(arg respawn_mavros)" />
+    </include>
+
+<!--    <rosparam param="fencePath" subst_value="True">$(arg fencePath)</rosparam> -->
 </group>
 
 </launch>
