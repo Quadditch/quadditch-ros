@@ -13,15 +13,13 @@ import sys
 # command enumerations here and in mavros_msgs/CommandCode
 # https://mavlink.io/en/messages/common.html#MAV_CMD
 
-
+ALTITUDE_LAYER_INCREMENT = 1.5
 NUM_DRONES = 4
 GROUND_ALTITUDE = 587 + 32.8 # need to add offset for some reason
 ABORT_ALTITUDE = GROUND_ALTITUDE - 5
 STANDARD_HEIGHT_ABOVE_GROUND = 8
 MIN_HEIGHT_ABOVE_GROUND = 5
 MAX_HEIGHT_ABOVE_GROUND = MIN_HEIGHT_ABOVE_GROUND + ALTITUDE_LAYER_INCREMENT * NUM_DRONES
-
-ALTITUDE_LAYER_INCREMENT = 1.5
 
 CAGE_ORIGIN = (37.22305889702098, -80.43259539019778, GROUND_ALTITUDE)
 LANDING_POSITIONS = [
@@ -92,14 +90,15 @@ class UAV:
 
 
     def on_state_cb(self, stateMsg):
+        rospy.loginfo_throttle(2, "Got some hot new state: {}".format(stateMsg))
         self.state = stateMsg
 
 
     def on_home_pos_cb(self, homeMsg):
-        rospy.loginfo("Setting home: {}".format(homeMsg))
         if self.homeService is None:
             return
         if not self.home_set:
+            rospy.loginfo("Setting home: {}".format(homeMsg))
             result = self.homeService(
                 current_gps=False,
                 yaw=90,
@@ -116,6 +115,8 @@ class UAV:
 
     def on_velocity_cb(self, velMsg):
 
+        rospy.loginfo_throttle(5, "Got a velocity command: {}".format(velMsg))
+
         old_possessed = self.possessed
 
         vel_ts_now = rospy.Time.now()
@@ -124,7 +125,7 @@ class UAV:
         self.vel_ts_last = vel_ts_now
 
         if self.possessed is not old_possessed:
-            rospy.loginfo("Possession has changed: {}".format(self.possessed))
+            rospy.loginfo("Possession is: {}".format(self.possessed))
 
 
     def on_waypoint_update_cb(self, wpMsg):
@@ -398,7 +399,7 @@ class UAV:
 
 
     def setMode(self, mode):
-        STARTING_POSITIONS("Setting flight mode to {}".format(mode))
+        rospy.loginfo("Setting flight mode to {}".format(mode))
         try:
             self.flightModeService(custom_mode=mode)
         except rospy.ServiceException as e:
@@ -406,7 +407,7 @@ class UAV:
 
 
     def setParam(self, paramId, paramValue):
-        rospy.loginfo("Setting param {} to {}".format(paramID, paramValue))
+        rospy.loginfo("Setting param {} to {}".format(paramId, paramValue))
         try:
             self.paramSetService(param_id=paramId,
                 value=mavros_msgs.msg.ParamValue(integer=0, real=paramValue))
